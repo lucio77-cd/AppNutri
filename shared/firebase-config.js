@@ -33,7 +33,7 @@ const firebaseConfig = {
 // firestore.rules (na função isNutri()). Se recriar a conta e o UID mudar,
 // atualize nos DOIS lugares.
 // ============================================================
-export const UID_NUTRICIONISTA = "COLE_AQUI_O_UID_DA_IRMA";
+export const UID_NUTRICIONISTA = "RFz8CLW8SSOZfauEE4hLUCTyjfq1";
 
 const app = initializeApp(firebaseConfig);
 
