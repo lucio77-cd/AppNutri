@@ -1,0 +1,107 @@
+rules_version = '2';
+
+// ============================================================
+// COMO PUBLICAR ESTE ARQUIVO:
+// 1. Copie todo o conteúdo abaixo (a partir de "service cloud.firestore").
+// 2. Console do Firebase > Firestore Database > aba "Regras".
+// 3. Cole substituindo o conteúdo atual > clique em "Publicar".
+//
+// ANTES DE PUBLICAR: troque "COLE_AQUI_O_UID_DA_IRMA" pelo UID real dela
+// (o mesmo UID que vai em shared/firebase-config.js, em UID_NUTRICIONISTA).
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funções auxiliares ----------
+
+    function isNutri() {
+      return request.auth != null
+        && request.auth.uid == "COLE_AQUI_O_UID_DA_IRMA";
+    }
+
+    function cli(id) {
+      return get(/databases/$(database)/documents/clientes/$(id)).data;
+    }
+
+    function isDono(id) {
+      return request.auth != null && cli(id).authUid == request.auth.uid;
+    }
+
+    // Consentimento LGPD precisa existir e não ter sido revogado
+    function consentOk(id) {
+      let p = /databases/$(database)/documents/clientes/$(id)/consentimentos/v1;
+      return exists(p) && get(p).data.revogadoEm == null;
+    }
+
+    // ---------- Configuração única da nutricionista ----------
+
+    match /config/nutricionista {
+      allow read, write: if isNutri();
+    }
+
+    match /config/modelosCardapio/{modeloId} {
+      allow read, write: if isNutri();
+    }
+
+    // ---------- Cliente ----------
+
+    match /clientes/{id} {
+      allow read: if isNutri() || isDono(id);
+      allow create, delete: if isNutri();
+
+      allow update: if isNutri()
+        || (isDono(id) && consentOk(id)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['nome', 'dataNascimento', 'contato',
+                           'acompanhaDiario', 'primeiroAcessoConcluido']));
+
+      match /anamneseInicial/{doc} {
+        allow read: if isNutri() || isDono(id);
+
+        allow create: if isDono(id) && consentOk(id)
+          && request.resource.data.status in ['rascunho', 'enviada'];
+
+        allow update: if
+          (isNutri() && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['status', 'revisadaEm']))
+          || (isDono(id) && consentOk(id)
+              && resource.data.status != 'revisada'
+              && request.resource.data.status in ['rascunho', 'enviada']);
+
+        allow delete: if false;
+      }
+
+      match /sessoes/{sessaoId} {
+        allow read, write: if isNutri();
+      }
+
+      match /cardapios/{cardapioId} {
+        allow read: if isNutri() || isDono(id);
+        allow write: if isNutri();
+      }
+
+      match /checkins/{data} {
+        allow read: if isNutri() || isDono(id);
+        allow create, update: if isDono(id) && consentOk(id)
+          && cli(id).acompanhaDiario == true;
+        allow delete: if false;
+      }
+
+      match /consentimentos/{consentId} {
+        allow read: if isNutri() || isDono(id);
+        allow create: if isDono(id) && request.resource.data.revogadoEm == null;
+        allow update: if isDono(id)
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['revogadoEm']);
+        allow delete: if false;
+      }
+
+      match /auditLog/{logId} {
+        allow read: if isNutri();
+        allow create: if isNutri() || isDono(id);
+        allow update, delete: if false;
+      }
+    }
+  }
+}
