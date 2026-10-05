@@ -1,0 +1,99 @@
+/* css/base.css */
+
+:root {
+  --cor-primaria: #2E7D32;
+  --cor-primaria-escura: #1B5E20;
+  --cor-fundo: #F7F7F7;
+  --cor-texto: #212121;
+  --cor-texto-suave: #6B6B6B;
+  --cor-borda: #DDDDDD;
+  --cor-erro: #C62828;
+  --cor-alerta: #B26A00;
+  --cor-card: #FFFFFF;
+  --raio: 10px;
+  --espaco: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+h1, h2, h3 {
+  margin: 0 0 8px 0;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--espaco);
+}
+
+.card {
+  background: var(--cor-card);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: var(--espaco);
+  margin-bottom: var(--espaco);
+}
+
+.btn {
+  display: inline-block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--raio);
+  background: var(--cor-primaria);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn:active {
+  background: var(--cor-primaria-escura);
+}
+
+.btn-secundario {
+  background: transparent;
+  color: var(--cor-primaria);
+  border: 1px solid var(--cor-primaria);
+}
+
+.campo {
+  margin-bottom: 12px;
+}
+
+.campo label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--cor-texto-suave);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.erro {
+  color: var(--cor-erro);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.escondido {
+  display: none !important;
+}
