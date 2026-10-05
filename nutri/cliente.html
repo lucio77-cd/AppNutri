@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cliente — Nutricionista</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/nutri.css">
+  <style>
+    .secao { margin-bottom: 24px; }
+    .secao h2 { font-size: 18px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 8px; }
+    .refeicao-item { border: 1px solid var(--cor-borda); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    .refeicao-item input { margin-bottom: 6px; }
+    .linha-2 { display: flex; gap: 8px; }
+    .linha-2 > div { flex: 1; }
+    .lista-simples { list-style: none; padding: 0; margin: 0; }
+    .lista-simples li { padding: 8px 0; border-bottom: 1px solid var(--cor-borda); font-size: 14px; }
+    .tag-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #E8F5E9; color: var(--cor-primaria-escura); }
+    .small-btn { font-size: 13px; padding: 6px 10px; width: auto; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topo">
+      <button class="sair" onclick="window.location.href='/nutri/dashboard.html'">← Voltar</button>
+      <button class="sair" id="btnSair">Sair</button>
+    </div>
+
+    <div id="cabecalho">Carregando cliente...</div>
+
+    <div class="secao">
+      <h2>Alertas</h2>
+      <div id="alertas">—</div>
+    </div>
+
+    <div class="secao">
+      <h2>Anamnese inicial</h2>
+      <div id="anamnese">—</div>
+    </div>
+
+    <div class="secao">
+      <h2>Nova sessão (consulta)</h2>
+      <div class="card">
+        <form id="formSessao">
+          <div class="linha-2">
+            <div class="campo">
+              <label>Peso (kg)</label>
+              <input type="number" step="0.1" id="sPeso">
+            </div>
+            <div class="campo">
+              <label>Altura (cm)</label>
+              <input type="number" id="sAltura">
+            </div>
+          </div>
+          <div class="campo">
+            <label>Observações da consulta</label>
+            <textarea id="sObs" rows="2"></textarea>
+          </div>
+
+          <p><strong>Diagnóstico (PES) — opcional</strong></p>
+          <div class="campo">
+            <label>Problema</label>
+            <input type="text" id="dProblema">
+          </div>
+          <div class="campo">
+            <label>Etiologia (relacionado a...)</label>
+            <input type="text" id="dEtiologia">
+          </div>
+          <div class="campo">
+            <label>Sinais/sintomas (evidenciado por...)</label>
+            <input type="text" id="dSinais">
+          </div>
+
+          <button type="submit" class="btn">Salvar sessão</button>
+          <p id="msgSessao" class="erro escondido"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="secao">
+      <h2>Cardápio</h2>
+      <div class="card">
+        <div id="cardapioVigente">Carregando...</div>
+      </div>
+      <button class="btn" id="btnNovoCardapio" style="margin-top:8px;">+ Novo cardápio</button>
+
+      <div class="card escondido" id="formCardapioCard" style="margin-top:8px;">
+        <form id="formCardapio">
+          <div class="campo">
+            <label>Começar de um modelo (opcional)</label>
+            <select id="selectModelo">
+              <option value="">— Montar do zero —</option>
+            </select>
+          </div>
+          <div class="linha-2">
+            <div class="campo">
+              <label>Início</label>
+              <input type="date" id="cDataInicio" required>
+            </div>
+            <div class="campo">
+              <label>Fim</label>
+              <input type="date" id="cDataFim" required>
+            </div>
+          </div>
+
+          <div id="listaRefeicoes"></div>
+          <button type="button" class="btn btn-secundario small-btn" id="btnAddRefeicao">+ Refeição</button>
+
+          <div class="linha-2" style="margin-top:12px;">
+            <div class="campo"><label>Kcal</label><input type="number" id="mKcal"></div>
+            <div class="campo"><label>Ptn (g)</label><input type="number" id="mPtn"></div>
+            <div class="campo"><label>Cho (g)</label><input type="number" id="mCho"></div>
+            <div class="campo"><label>Lip (g)</label><input type="number" id="mLip"></div>
+          </div>
+          <div class="campo">
+            <label>Orientações gerais</label>
+            <textarea id="cOrientacoes" rows="2"></textarea>
+          </div>
+          <div class="campo">
+            <label><input type="checkbox" id="salvarComoModelo" style="width:auto;"> Salvar este cardápio como modelo reaproveitável</label>
+          </div>
+          <div class="campo escondido" id="campoNomeModelo">
+            <label>Nome do modelo</label>
+            <input type="text" id="nomeModelo" placeholder="Ex: 1800kcal low carb">
+          </div>
+
+          <button type="submit" class="btn">Salvar cardápio</button>
+          <button type="button" class="btn btn-secundario" id="btnCancelarCardapio" style="margin-top:8px;">Cancelar</button>
+          <p id="msgCardapio" class="erro escondido"></p>
+        </form>
+      </div>
+
+      <details style="margin-top:12px;">
+        <summary>Histórico de cardápios anteriores</summary>
+        <div id="historicoCardapios">—</div>
+      </details>
+    </div>
+
+    <div class="secao">
+      <h2>Progresso</h2>
+      <div class="card">
+        <ul class="lista-simples" id="listaProgresso">Carregando...</ul>
+      </div>
+    </div>
+
+    <div class="secao">
+      <h2>Dados cadastrais</h2>
+      <div class="card">
+        <form id="formDados">
+          <div class="campo"><label>Nome</label><input type="text" id="editNome"></div>
+          <div class="campo"><label>Telefone</label><input type="tel" id="editTelefone"></div>
+          <div class="campo"><label>Objetivo</label><input type="text" id="editObjetivo"></div>
+          <button type="submit" class="btn">Salvar dados</button>
+          <p id="msgDados" class="erro escondido"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { observarLogin, logout } from "/shared/auth.js";
+    import {
+      obterCliente, atualizarCliente, obterAnamneseInicial, marcarAnamneseRevisada,
+      criarSessao, criarCardapio, obterCardapioVigente, listarCardapios,
+      listarModelosCardapio, salvarModeloCardapio, listarUltimosCheckins,
+    } from "/shared/db.js";
+    import { obterAlertasCliente, calcularAdesao } from "/shared/cardapio.js";
+
+    const params = new URLSearchParams(window.location.search);
+    const clienteId = params.get("id");
+
+    if (!clienteId) {
+      document.getElementById("cabecalho").innerHTML = "<p class='erro'>Cliente não especificado na URL.</p>";
+    }
+
+    observarLogin((user) => {
+      if (!user) {
+        window.location.href = "/nutri/login.html";
+      } else if (clienteId) {
+        carregarTudo();
+      }
+    });
+
+    document.getElementById("btnSair").addEventListener("click", async () => {
+      await logout();
+      window.location.href = "/nutri/login.html";
+    });
+
+    let refeicaoContador = 0;
+
+    async function carregarTudo() {
+      await carregarCabecalho();
+      await carregarAlertas();
+      await carregarAnamnese();
+      await carregarCardapioVigente();
+      await carregarHistoricoCardapios();
+      await carregarProgresso();
+      await carregarModelos();
+    }
+
+    async function carregarCabecalho() {
+      const cliente = await obterCliente(clienteId);
+      if (!cliente) {
+        document.getElementById("cabecalho").innerHTML = "<p class='erro'>Cliente não encontrado.</p>";
+        return;
+      }
+      document.getElementById("cabecalho").innerHTML = `
+        <h1>${cliente.nome}</h1>
+        <p>${cliente.objetivo || "Sem objetivo definido"}</p>
+      `;
+      document.getElementById("editNome").value = cliente.nome || "";
+      document.getElementById("editTelefone").value = (cliente.contato && cliente.contato.telefone) || "";
+      document.getElementById("editObjetivo").value = cliente.objetivo || "";
+    }
+
+    async function carregarAlertas() {
+      try {
+        const alertas = await obterAlertasCliente(clienteId);
+        const div = document.getElementById("alertas");
+        div.innerHTML = alertas.length === 0
+          ? "<p>Sem alertas no momento.</p>"
+          : alertas.map((a) => `<span class="badge-alerta">${a.texto}</span>`).join(" ");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function carregarAnamnese() {
+      const anamnese = await obterAnamneseInicial(clienteId);
+      const div = document.getElementById("anamnese");
+      if (!anamnese) {
+        div.innerHTML = "<p>O cliente ainda não preencheu a anamnese.</p>";
+        return;
+      }
+      div.innerHTML = `
+        <p><strong>Status:</strong> <span class="tag-status">${anamnese.status}</span></p>
+        <p><strong>Histórico de saúde:</strong> ${anamnese.textoLivre?.historicoSaude || "—"}</p>
+        <p><strong>Objetivo detalhado:</strong> ${anamnese.textoLivre?.objetivoDetalhado || "—"}</p>
+        ${anamnese.status !== "revisada" ? '<button class="btn btn-secundario small-btn" id="btnRevisarAnamnese">Marcar como revisada</button>' : ""}
+      `;
+      const btn = document.getElementById("btnRevisarAnamnese");
+      if (btn) {
+        btn.addEventListener("click", async () => {
+          await marcarAnamneseRevisada(clienteId);
+          carregarAnamnese();
+        });
+      }
+    }
+
+    // ---------- Nova sessão ----------
+    document.getElementById("formSessao").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msgSessao");
+      msg.classList.add("escondido");
+
+      const diagnosticos = [];
+      const problema = document.getElementById("dProblema").value;
+      if (problema) {
+        diagnosticos.push({
+          problema,
+          etiologia: document.getElementById("dEtiologia").value,
+          sinaisSintomas: document.getElementById("dSinais").value,
+          status: "ativo",
+        });
+      }
+
+      try {
+        await criarSessao(clienteId, {
+          data: new Date(),
+          antropometria: {
+            peso: parseFloat(document.getElementById("sPeso").value) || null,
+            altura: parseFloat(document.getElementById("sAltura").value) || null,
+          },
+          observacoes: document.getElementById("sObs").value,
+          diagnosticos,
+        });
+        document.getElementById("formSessao").reset();
+        alert("Sessão salva.");
+      } catch (err) {
+        msg.textContent = "Erro ao salvar sessão.";
+        msg.classList.remove("escondido");
+        console.error(err);
+      }
+    });
+
+    // ---------- Cardápio vigente ----------
+    async function carregarCardapioVigente() {
+      const cardapio = await obterCardapioVigente(clienteId);
+      const div = document.getElementById("cardapioVigente");
+      if (!cardapio) {
+        div.innerHTML = "<p>Nenhum cardápio vigente.</p>";
+        return;
+      }
+      const fim = cardapio.dataFim?.toDate ? cardapio.dataFim.toDate() : new Date(cardapio.dataFim);
+      div.innerHTML = `
+        <p><strong>Válido até:</strong> ${fim.toLocaleDateString("pt-BR")}</p>
+        <ul class="lista-simples">
+          ${(cardapio.refeicoes || []).map((r) => `<li><strong>${r.nome}</strong> (${r.horario}) — ${(r.itens || []).join(", ")}</li>`).join("")}
+        </ul>
+      `;
+    }
+
+    async function carregarHistoricoCardapios() {
+      const cardapios = await listarCardapios(clienteId);
+      const div = document.getElementById("historicoCardapios");
+      const anteriores = cardapios.filter((c) => c.status === "encerrado");
+      if (anteriores.length === 0) {
+        div.innerHTML = "<p>Sem cardápios anteriores.</p>";
+        return;
+      }
+      div.innerHTML = anteriores.map((c) => {
+        const inicio = c.dataInicio?.toDate ? c.dataInicio.toDate() : new Date(c.dataInicio);
+        const fim = c.dataFim?.toDate ? c.dataFim.toDate() : new Date(c.dataFim);
+        return `<p>${inicio.toLocaleDateString("pt-BR")} a ${fim.toLocaleDateString("pt-BR")} — ${(c.refeicoes || []).length} refeições</p>`;
+      }).join("");
+    }
+
+    // ---------- Modelos ----------
+    async function carregarModelos() {
+      const modelos = await listarModelosCardapio();
+      const select = document.getElementById("selectModelo");
+      modelos.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.nome;
+        opt.dataset.modelo = JSON.stringify(m);
+        select.appendChild(opt);
+      });
+    }
+
+    document.getElementById("selectModelo").addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      if (!opt.dataset.modelo) return;
+      const modelo = JSON.parse(opt.dataset.modelo);
+      document.getElementById("listaRefeicoes").innerHTML = "";
+      refeicaoContador = 0;
+      (modelo.refeicoes || []).forEach((r) => adicionarLinhaRefeicao(r));
+      document.getElementById("mKcal").value = modelo.metas?.kcal || "";
+      document.getElementById("mPtn").value = modelo.metas?.ptn || "";
+      document.getElementById("mCho").value = modelo.metas?.cho || "";
+      document.getElementById("mLip").value = modelo.metas?.lip || "";
+    });
+
+    // ---------- Formulário de novo cardápio ----------
+    const formCardapioCard = document.getElementById("formCardapioCard");
+
+    document.getElementById("btnNovoCardapio").addEventListener("click", () => {
+      formCardapioCard.classList.remove("escondido");
+      if (document.getElementById("listaRefeicoes").children.length === 0) {
+        adicionarLinhaRefeicao();
+      }
+    });
+
+    document.getElementById("btnCancelarCardapio").addEventListener("click", () => {
+      formCardapioCard.classList.add("escondido");
+    });
+
+    document.getElementById("btnAddRefeicao").addEventListener("click", () => adicionarLinhaRefeicao());
+
+    document.getElementById("salvarComoModelo").addEventListener("change", (e) => {
+      document.getElementById("campoNomeModelo").classList.toggle("escondido", !e.target.checked);
+    });
+
+    function adicionarLinhaRefeicao(dados = {}) {
+      refeicaoContador++;
+      const id = `ref${refeicaoContador}`;
+      const div = document.createElement("div");
+      div.className = "refeicao-item";
+      div.dataset.refId = id;
+      div.innerHTML = `
+        <div class="linha-2">
+          <input type="text" placeholder="Nome (ex: Café da manhã)" class="rNome" value="${dados.nome || ""}">
+          <input type="time" class="rHorario" value="${dados.horario || ""}" style="max-width:110px;">
+        </div>
+        <input type="text" placeholder="Itens separados por vírgula" class="rItens" value="${(dados.itens || []).join(", ")}">
+        <button type="button" class="btn btn-secundario small-btn remover-refeicao">Remover</button>
+      `;
+      div.querySelector(".remover-refeicao").addEventListener("click", () => div.remove());
+      document.getElementById("listaRefeicoes").appendChild(div);
+    }
+
+    document.getElementById("formCardapio").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msgCardapio");
+      msg.classList.add("escondido");
+
+      const refeicoes = [...document.querySelectorAll(".refeicao-item")].map((div) => ({
+        id: div.dataset.refId,
+        nome: div.querySelector(".rNome").value,
+        horario: div.querySelector(".rHorario").value,
+        itens: div.querySelector(".rItens").value.split(",").map((s) => s.trim()).filter(Boolean),
+      }));
+
+      const metas = {
+        kcal: parseFloat(document.getElementById("mKcal").value) || null,
+        ptn: parseFloat(document.getElementById("mPtn").value) || null,
+        cho: parseFloat(document.getElementById("mCho").value) || null,
+        lip: parseFloat(document.getElementById("mLip").value) || null,
+      };
+
+      const dadosCardapio = {
+        dataInicio: new Date(document.getElementById("cDataInicio").value),
+        dataFim: new Date(document.getElementById("cDataFim").value),
+        refeicoes,
+        metas,
+        orientacoes: document.getElementById("cOrientacoes").value,
+      };
+
+      try {
+        await criarCardapio(clienteId, dadosCardapio);
+
+        if (document.getElementById("salvarComoModelo").checked) {
+          const nomeModelo = document.getElementById("nomeModelo").value || "Modelo sem nome";
+          await salvarModeloCardapio({ nome: nomeModelo, refeicoes, metas });
+        }
+
+        formCardapioCard.classList.add("escondido");
+        document.getElementById("formCardapio").reset();
+        document.getElementById("listaRefeicoes").innerHTML = "";
+        refeicaoContador = 0;
+
+        await carregarCardapioVigente();
+        await carregarHistoricoCardapios();
+      } catch (err) {
+        msg.textContent = "Erro ao salvar cardápio.";
+        msg.classList.remove("escondido");
+        console.error(err);
+      }
+    });
+
+    // ---------- Progresso ----------
+    async function carregarProgresso() {
+      const checkins = await listarUltimosCheckins(clienteId, 14);
+      const ul = document.getElementById("listaProgresso");
+      if (checkins.length === 0) {
+        ul.innerHTML = "<li>Sem registros ainda.</li>";
+        return;
+      }
+      ul.innerHTML = checkins.map((c) => {
+        const adesaoDia = calcularAdesao([c]);
+        return `<li>
+          <strong>${c.id}</strong> —
+          peso: ${c.peso ?? "—"} kg,
+          adesão: ${adesaoDia ?? "—"}%,
+          sintomas: fome ${c.sintomas?.fome ?? "—"}/5, energia ${c.sintomas?.energia ?? "—"}/5
+        </li>`;
+      }).join("");
+    }
+
+    // ---------- Dados cadastrais ----------
+    document.getElementById("formDados").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msgDados");
+      msg.classList.add("escondido");
+      try {
+        await atualizarCliente(clienteId, {
+          nome: document.getElementById("editNome").value,
+          contato: { telefone: document.getElementById("editTelefone").value },
+          objetivo: document.getElementById("editObjetivo").value,
+        });
+        await carregarCabecalho();
+      } catch (err) {
+        msg.textContent = "Erro ao salvar dados.";
+        msg.classList.remove("escondido");
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
