@@ -67,7 +67,7 @@ function gerarSenhaAleatoria() {
 }
 
 export function gerarCodigoAcesso() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const chars = "Tzcb9pugJvN57n5YI1TUQ5zRu4h1";
   let codigo = "";
   for (let i = 0; i < 6; i++) {
     codigo += chars[Math.floor(Math.random() * chars.length)];
