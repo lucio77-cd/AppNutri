@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — Nutricionista</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/nutri.css">
+</head>
+<body>
+  <div class="container">
+    <div class="topo">
+      <h1>Clientes</h1>
+      <button class="sair" id="btnSair">Sair</button>
+    </div>
+
+    <button class="btn" id="btnNovoCliente">+ Novo cliente</button>
+
+    <div class="card" style="margin-top: 16px;">
+      <div id="listaClientes">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="modal escondido" id="modalNovoCliente">
+    <div class="modal-conteudo">
+      <h2>Novo cliente</h2>
+      <form id="formNovoCliente">
+        <div class="campo">
+          <label for="nome">Nome</label>
+          <input type="text" id="nome" required>
+        </div>
+        <div class="campo">
+          <label for="dataNascimento">Data de nascimento</label>
+          <input type="date" id="dataNascimento">
+        </div>
+        <div class="campo">
+          <label for="telefone">Telefone/WhatsApp</label>
+          <input type="tel" id="telefone">
+        </div>
+        <div class="campo">
+          <label for="objetivo">Objetivo</label>
+          <input type="text" id="objetivo" placeholder="Ex: emagrecimento">
+        </div>
+        <button type="submit" class="btn">Criar acesso</button>
+        <button type="button" class="btn btn-secundario" id="btnCancelarNovo" style="margin-top: 8px;">Cancelar</button>
+        <p id="msgErroNovo" class="erro escondido"></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal escondido" id="modalAcesso">
+    <div class="modal-conteudo">
+      <h2>Acesso criado</h2>
+      <p>Envie estes dados para o cliente:</p>
+      <p><strong>Código:</strong></p>
+      <div class="codigo-senha" id="codigoGerado"></div>
+      <p><strong>Senha:</strong></p>
+      <div class="codigo-senha" id="senhaGerada"></div>
+      <button class="btn" id="btnCopiar">Copiar código e senha</button>
+      <button class="btn btn-secundario" id="btnFecharAcesso" style="margin-top: 8px;">Fechar</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { observarLogin, logout } from "/shared/auth.js";
+    import { listarClientesAtivos, cadastrarNovoCliente } from "/shared/db.js";
+    import { obterAlertasCliente } from "/shared/cardapio.js";
+
+    observarLogin((user) => {
+      if (!user) {
+        window.location.href = "/nutri/login.html";
+      } else {
+        carregarClientes();
+      }
+    });
+
+    document.getElementById("btnSair").addEventListener("click", async () => {
+      await logout();
+      window.location.href = "/nutri/login.html";
+    });
+
+    async function carregarClientes() {
+      const div = document.getElementById("listaClientes");
+      try {
+        const clientes = await listarClientesAtivos();
+
+        if (clientes.length === 0) {
+          div.innerHTML = "<p>Nenhum cliente cadastrado ainda.</p>";
+          return;
+        }
+
+        // Renderiza a lista primeiro (rápido), depois busca alertas de
+        // cada cliente em paralelo e vai preenchendo os badges.
+        div.innerHTML = clientes.map((c) => `
+          <div class="cliente-linha" onclick="window.location.href='/nutri/cliente.html?id=${c.id}'">
+            <div>
+              <div class="cliente-nome">${c.nome}</div>
+              <div class="cliente-objetivo">${c.objetivo || "Sem objetivo definido"}</div>
+            </div>
+            <div id="badges-${c.id}">
+              ${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}
+            </div>
+          </div>
+        `).join("");
+
+        clientes.forEach(async (c) => {
+          if (!c.primeiroAcessoConcluido) return; // sem check-in/cardápio ainda faz sentido
+          try {
+            const alertas = await obterAlertasCliente(c.id);
+            const container = document.getElementById(`badges-${c.id}`);
+            if (container && alertas.length > 0) {
+              container.innerHTML = alertas
+                .map((a) => `<span class="badge-alerta">${a.texto}</span>`)
+                .join(" ");
+            }
+          } catch (err) {
+            console.error(`Erro ao buscar alertas de ${c.id}`, err);
+          }
+        });
+      } catch (err) {
+        div.innerHTML = "<p class='erro'>Erro ao carregar clientes.</p>";
+        console.error(err);
+      }
+    }
+
+    const modalNovo = document.getElementById("modalNovoCliente");
+    const modalAcesso = document.getElementById("modalAcesso");
+
+    document.getElementById("btnNovoCliente").addEventListener("click", () => {
+      modalNovo.classList.remove("escondido");
+    });
+
+    document.getElementById("btnCancelarNovo").addEventListener("click", () => {
+      modalNovo.classList.add("escondido");
+    });
+
+    document.getElementById("formNovoCliente").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msgErro = document.getElementById("msgErroNovo");
+      msgErro.classList.add("escondido");
+
+      const dados = {
+        nome: document.getElementById("nome").value,
+        dataNascimento: document.getElementById("dataNascimento").value || null,
+        contato: { telefone: document.getElementById("telefone").value || "" },
+        objetivo: document.getElementById("objetivo").value || "",
+      };
+
+      try {
+        const { codigo, senha } = await cadastrarNovoCliente(dados);
+
+        modalNovo.classList.add("escondido");
+        document.getElementById("formNovoCliente").reset();
+
+        document.getElementById("codigoGerado").textContent = codigo;
+        document.getElementById("senhaGerada").textContent = senha;
+        modalAcesso.classList.remove("escondido");
+
+        document.getElementById("btnCopiar").onclick = () => {
+          navigator.clipboard.writeText(`Código: ${codigo}\nSenha: ${senha}`);
+        };
+
+        carregarClientes();
+      } catch (err) {
+        msgErro.textContent = "Erro ao criar cliente. Tente novamente.";
+        msgErro.classList.remove("escondido");
+        console.error(err);
+      }
+    });
+
+    document.getElementById("btnFecharAcesso").addEventListener("click", () => {
+      modalAcesso.classList.add("escondido");
+    });
+  </script>
+</body>
+</html>
