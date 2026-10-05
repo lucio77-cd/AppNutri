@@ -1,0 +1,76 @@
+/* css/nutri.css */
+
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--espaco);
+}
+
+.topo .sair {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.cliente-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cor-borda);
+  cursor: pointer;
+}
+
+.cliente-linha:last-child {
+  border-bottom: none;
+}
+
+.cliente-nome {
+  font-weight: 600;
+}
+
+.cliente-objetivo {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.badge-alerta {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #FFF3E0;
+  color: var(--cor-alerta);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espaco);
+}
+
+.modal-conteudo {
+  background: #fff;
+  border-radius: var(--raio);
+  padding: var(--espaco);
+  max-width: 400px;
+  width: 100%;
+}
+
+.codigo-senha {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+  background: var(--cor-fundo);
+  border-radius: 8px;
+  margin: 8px 0;
+  letter-spacing: 1px;
+}
