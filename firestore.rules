@@ -17,7 +17,7 @@ service cloud.firestore {
 
     function isNutri() {
       return request.auth != null
-        && request.auth.uid == "COLE_AQUI_O_UID_DA_IRMA";
+        && request.auth.uid == "Tzcb9pugJvN57n5YI1TUQ5zRu4h1";
     }
 
     function cli(id) {
