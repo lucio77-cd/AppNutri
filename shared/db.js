@@ -4,7 +4,7 @@
 // estrutura de dados mudar, você corrige num lugar só, não em cada página.
 
 import { db } from "./firebase-config.js";
-import { criarAcessoCliente, gerarCodigoAcesso, removerAcessoCliente } from "./auth.js";
+import { criarAcessoCliente, gerarCodigoAcesso } from "./auth.js";
 import {
   collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch,
@@ -49,18 +49,11 @@ export async function cadastrarNovoCliente({ nome, dataNascimento, contato, obje
     criadoEm: serverTimestamp(),
   });
 
-  let senhaCriada = null;
   try {
     const acesso = await criarAcessoCliente(codigo);
-    senhaCriada = acesso.senha;
     await updateDoc(ref, { authUid: acesso.uid });
     return { clienteId: ref.id, codigo, senha: acesso.senha };
   } catch (erro) {
-    if (senhaCriada) {
-      try { await removerAcessoCliente(codigo, senhaCriada); } catch (erroAuth) {
-        console.error("Não foi possível remover a conta de acesso incompleta:", erroAuth);
-      }
-    }
     try { await deleteDoc(ref); } catch (erroLimpeza) {
       console.error("Não foi possível limpar o cadastro incompleto:", erroLimpeza);
     }
