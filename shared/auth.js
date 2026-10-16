@@ -11,8 +11,13 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  deleteUser,
   signOut,
   onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+
+//
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // Mesma configuração do firebase-config.js, usada aqui para abrir um
@@ -48,13 +53,26 @@ export async function criarAcessoCliente(codigo) {
 
   const appSecundario = initializeApp(firebaseConfig, `secundario-${Date.now()}`);
   const authSecundario = getAuth(appSecundario);
+  try {
+    const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
+    await signOut(authSecundario);
+    return { uid: cred.user.uid, senha };
+  } finally {
+    await deleteApp(appSecundario);
+  }
+}
 
-  const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
-  const uid = cred.user.uid;
-
-  await signOut(authSecundario);
-
-  return { uid, senha };
+// Remove a conta recém-criada caso o vínculo com o documento Firestore falhe.
+export async function removerAcessoCliente(codigo, senha) {
+  const appSecundario = initializeApp(firebaseConfig, `limpeza-${Date.now()}`);
+  const authSecundario = getAuth(appSecundario);
+  try {
+    const cred = await signInWithEmailAndPassword(authSecundario, codigoParaEmail(codigo), senha);
+    await deleteUser(cred.user);
+  } finally {
+    try { await signOut(authSecundario); } catch {}
+    await deleteApp(appSecundario);
+  }
 }
 
 function escolherCaracterSeguro(chars) {
