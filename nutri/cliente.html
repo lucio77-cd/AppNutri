@@ -455,9 +455,9 @@
         const adesaoDia = calcularAdesao([c]);
         return `<li>
           <strong>${escapeHTML(c.id)}</strong> —
-          peso: ${c.peso ?? "—"} kg,
-          adesão: ${adesaoDia ?? "—"}%,
-          sintomas: fome ${c.sintomas?.fome ?? "—"}/5, energia ${c.sintomas?.energia ?? "—"}/5
+          peso: ${escapeHTML(c.peso ?? "—")} kg,
+          adesão: ${escapeHTML(adesaoDia ?? "—")} %,
+          sintomas: fome ${escapeHTML(c.sintomas?.fome ?? "—")}/5, energia ${escapeHTML(c.sintomas?.energia ?? "—")}/5
         </li>`;
       }).join("");
     }
