@@ -66,6 +66,12 @@
     import { listarClientesAtivos, cadastrarNovoCliente } from "/shared/db.js";
     import { obterAlertasCliente } from "/shared/cardapio.js";
 
+    function escapeHTML(valor) {
+      return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[caractere]);
+    }
+
     observarLogin((user) => {
       if (!user) {
         window.location.href = "/nutri/login.html";
@@ -92,16 +98,29 @@
         // Renderiza a lista primeiro (rápido), depois busca alertas de
         // cada cliente em paralelo e vai preenchendo os badges.
         div.innerHTML = clientes.map((c) => `
-          <div class="cliente-linha" onclick="window.location.href='/nutri/cliente.html?id=${c.id}'">
+          <div class="cliente-linha" data-cliente-id="${escapeHTML(c.id)}" role="link" tabindex="0">
             <div>
-              <div class="cliente-nome">${c.nome}</div>
-              <div class="cliente-objetivo">${c.objetivo || "Sem objetivo definido"}</div>
+              <div class="cliente-nome">${escapeHTML(c.nome)}</div>
+              <div class="cliente-objetivo">${escapeHTML(c.objetivo || "Sem objetivo definido")}</div>
             </div>
-            <div id="badges-${c.id}">
+            <div id="badges-${escapeHTML(c.id)}">
               ${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}
             </div>
           </div>
         `).join("");
+
+        div.querySelectorAll("[data-cliente-id]").forEach((linha) => {
+          const abrir = () => {
+            window.location.href = "/nutri/cliente.html?id=" + encodeURIComponent(linha.dataset.clienteId);
+          };
+          linha.addEventListener("click", abrir);
+          linha.addEventListener("keydown", (evento) => {
+            if (evento.key === "Enter" || evento.key === " ") {
+              evento.preventDefault();
+              abrir();
+            }
+          });
+        });
 
         clientes.forEach(async (c) => {
           if (!c.primeiroAcessoConcluido) return; // sem check-in/cardápio ainda faz sentido
@@ -110,7 +129,7 @@
             const container = document.getElementById(`badges-${c.id}`);
             if (container && alertas.length > 0) {
               container.innerHTML = alertas
-                .map((a) => `<span class="badge-alerta">${a.texto}</span>`)
+                .map((a) => `<span class="badge-alerta">${escapeHTML(a.texto)}</span>`)
                 .join(" ");
             }
           } catch (err) {

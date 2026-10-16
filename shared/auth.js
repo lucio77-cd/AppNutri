@@ -14,6 +14,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 
 // Mesma configuração do firebase-config.js, usada aqui para abrir um
 // segundo "app" do Firebase, isolado do principal — só para criar contas
@@ -48,31 +49,32 @@ export async function criarAcessoCliente(codigo) {
 
   const appSecundario = initializeApp(firebaseConfig, `secundario-${Date.now()}`);
   const authSecundario = getAuth(appSecundario);
+  try {
+    const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
+    await signOut(authSecundario);
+    return { uid: cred.user.uid, senha };
+  } finally {
+    await deleteApp(appSecundario);
+  }
+}
 
-  const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
-  const uid = cred.user.uid;
-
-  await signOut(authSecundario);
-
-  return { uid, senha };
+function escolherCaracterSeguro(chars) {
+  const limite = Math.floor(0x100000000 / chars.length) * chars.length;
+  const valor = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(valor);
+  } while (valor[0] >= limite);
+  return chars[valor[0] % chars.length];
 }
 
 function gerarSenhaAleatoria() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let senha = "";
-  for (let i = 0; i < 8; i++) {
-    senha += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return senha;
+  return Array.from({ length: 12 }, () => escolherCaracterSeguro(chars)).join("");
 }
 
 export function gerarCodigoAcesso() {
-  const chars = "Tzcb9pugJvN57n5YI1TUQ5zRu4h1";
-  let codigo = "";
-  for (let i = 0; i < 6; i++) {
-    codigo += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return codigo;
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 8 }, () => escolherCaracterSeguro(chars)).join("");
 }
 
 export function logout() {

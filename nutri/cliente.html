@@ -166,6 +166,12 @@
     } from "/shared/db.js";
     import { obterAlertasCliente, calcularAdesao } from "/shared/cardapio.js";
 
+    function escapeHTML(valor) {
+      return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[caractere]);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const clienteId = params.get("id");
 
@@ -205,8 +211,8 @@
         return;
       }
       document.getElementById("cabecalho").innerHTML = `
-        <h1>${cliente.nome}</h1>
-        <p>${cliente.objetivo || "Sem objetivo definido"}</p>
+        <h1>${escapeHTML(cliente.nome)}</h1>
+        <p>${escapeHTML(cliente.objetivo || "Sem objetivo definido")}</p>
       `;
       document.getElementById("editNome").value = cliente.nome || "";
       document.getElementById("editTelefone").value = (cliente.contato && cliente.contato.telefone) || "";
@@ -219,7 +225,7 @@
         const div = document.getElementById("alertas");
         div.innerHTML = alertas.length === 0
           ? "<p>Sem alertas no momento.</p>"
-          : alertas.map((a) => `<span class="badge-alerta">${a.texto}</span>`).join(" ");
+          : alertas.map((a) => `<span class="badge-alerta">${escapeHTML(a.texto)}</span>`).join(" ");
       } catch (err) {
         console.error(err);
       }
@@ -233,9 +239,9 @@
         return;
       }
       div.innerHTML = `
-        <p><strong>Status:</strong> <span class="tag-status">${anamnese.status}</span></p>
-        <p><strong>Histórico de saúde:</strong> ${anamnese.textoLivre?.historicoSaude || "—"}</p>
-        <p><strong>Objetivo detalhado:</strong> ${anamnese.textoLivre?.objetivoDetalhado || "—"}</p>
+        <p><strong>Status:</strong> <span class="tag-status">${escapeHTML(anamnese.status)}</span></p>
+        <p><strong>Histórico de saúde:</strong> ${escapeHTML(anamnese.textoLivre?.historicoSaude || "—")}</p>
+        <p><strong>Objetivo detalhado:</strong> ${escapeHTML(anamnese.textoLivre?.objetivoDetalhado || "—")}</p>
         ${anamnese.status !== "revisada" ? '<button class="btn btn-secundario small-btn" id="btnRevisarAnamnese">Marcar como revisada</button>' : ""}
       `;
       const btn = document.getElementById("btnRevisarAnamnese");
@@ -275,6 +281,7 @@
           diagnosticos,
         });
         document.getElementById("formSessao").reset();
+        await carregarProgresso();
         alert("Sessão salva.");
       } catch (err) {
         msg.textContent = "Erro ao salvar sessão.";
@@ -295,7 +302,7 @@
       div.innerHTML = `
         <p><strong>Válido até:</strong> ${fim.toLocaleDateString("pt-BR")}</p>
         <ul class="lista-simples">
-          ${(cardapio.refeicoes || []).map((r) => `<li><strong>${r.nome}</strong> (${r.horario}) — ${(r.itens || []).join(", ")}</li>`).join("")}
+          ${(cardapio.refeicoes || []).map((r) => `<li><strong>${escapeHTML(r.nome)}</strong> (${escapeHTML(r.horario)}) — ${escapeHTML((r.itens || []).join(", "))}</li>`).join("")}
         </ul>
       `;
     }
@@ -369,10 +376,10 @@
       div.dataset.refId = id;
       div.innerHTML = `
         <div class="linha-2">
-          <input type="text" placeholder="Nome (ex: Café da manhã)" class="rNome" value="${dados.nome || ""}">
-          <input type="time" class="rHorario" value="${dados.horario || ""}" style="max-width:110px;">
+          <input type="text" placeholder="Nome (ex: Café da manhã)" class="rNome" value="${escapeHTML(dados.nome || "")}">
+          <input type="time" class="rHorario" value="${escapeHTML(dados.horario || "")}" style="max-width:110px;">
         </div>
-        <input type="text" placeholder="Itens separados por vírgula" class="rItens" value="${(dados.itens || []).join(", ")}">
+        <input type="text" placeholder="Itens separados por vírgula" class="rItens" value="${escapeHTML((dados.itens || []).join(", "))}">
         <button type="button" class="btn btn-secundario small-btn remover-refeicao">Remover</button>
       `;
       div.querySelector(".remover-refeicao").addEventListener("click", () => div.remove());
@@ -398,9 +405,17 @@
         lip: parseFloat(document.getElementById("mLip").value) || null,
       };
 
+      const inicioInformado = document.getElementById("cDataInicio").value;
+      const fimInformado = document.getElementById("cDataFim").value;
+      if (!inicioInformado || !fimInformado || fimInformado < inicioInformado) {
+        msg.textContent = "A data final deve ser igual ou posterior à data inicial.";
+        msg.classList.remove("escondido");
+        return;
+      }
+
       const dadosCardapio = {
-        dataInicio: new Date(document.getElementById("cDataInicio").value),
-        dataFim: new Date(document.getElementById("cDataFim").value),
+        dataInicio: new Date(inicioInformado + "T12:00:00"),
+        dataFim: new Date(fimInformado + "T12:00:00"),
         refeicoes,
         metas,
         orientacoes: document.getElementById("cOrientacoes").value,
@@ -439,10 +454,10 @@
       ul.innerHTML = checkins.map((c) => {
         const adesaoDia = calcularAdesao([c]);
         return `<li>
-          <strong>${c.id}</strong> —
-          peso: ${c.peso ?? "—"} kg,
-          adesão: ${adesaoDia ?? "—"}%,
-          sintomas: fome ${c.sintomas?.fome ?? "—"}/5, energia ${c.sintomas?.energia ?? "—"}/5
+          <strong>${escapeHTML(c.id)}</strong> —
+          peso: ${escapeHTML(c.peso ?? "—")} kg,
+          adesão: ${escapeHTML(adesaoDia ?? "—")} %,
+          sintomas: fome ${escapeHTML(c.sintomas?.fome ?? "—")}/5, energia ${escapeHTML(c.sintomas?.energia ?? "—")}/5
         </li>`;
       }).join("");
     }
