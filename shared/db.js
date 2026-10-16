@@ -6,8 +6,8 @@
 import { db } from "./firebase-config.js";
 import { criarAcessoCliente, gerarCodigoAcesso } from "./auth.js";
 import {
-  collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc,
-  query, where, orderBy, limit, serverTimestamp,
+  collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  query, where, orderBy, limit, serverTimestamp, writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // ============================================================
@@ -19,10 +19,24 @@ import {
 // Retorna { clienteId, codigo, senha } — a senha só existe neste retorno,
 // nunca é salva no Firestore. Mostre na tela para a nutricionista copiar.
 export async function cadastrarNovoCliente({ nome, dataNascimento, contato, objetivo }) {
-  const codigo = gerarCodigoAcesso();
+  let codigo;
+  for (let tentativa = 0; tentativa < 10; tentativa++) {
+    const candidato = gerarCodigoAcesso();
+    const existente = await getDocs(query(
+      collection(db, "clientes"),
+      where("codigo", "==", candidato),
+      limit(1)
+    ));
+    if (existente.empty) {
+      codigo = candidato;
+      break;
+    }
+  }
+  if (!codigo) throw new Error("Não foi possível gerar um código único. Tente novamente.");
 
-  // 1. Cria o documento do cliente (ainda sem authUid)
-  const ref = await addDoc(collection(db, "clientes"), {
+  // Cria o documento e remove-o se a criação/vinculação do acesso falhar.
+  const ref = doc(collection(db, "clientes"));
+  await setDoc(ref, {
     nome,
     dataNascimento,
     contato,
@@ -35,13 +49,16 @@ export async function cadastrarNovoCliente({ nome, dataNascimento, contato, obje
     criadoEm: serverTimestamp(),
   });
 
-  // 2. Cria a conta de login (código + senha gerada)
-  const { uid, senha } = await criarAcessoCliente(codigo);
-
-  // 3. Vincula o uid criado ao documento do cliente
-  await updateDoc(ref, { authUid: uid });
-
-  return { clienteId: ref.id, codigo, senha };
+  try {
+    const { uid, senha } = await criarAcessoCliente(codigo);
+    await updateDoc(ref, { authUid: uid });
+    return { clienteId: ref.id, codigo, senha };
+  } catch (erro) {
+    try { await deleteDoc(ref); } catch (erroLimpeza) {
+      console.error("Não foi possível limpar o cadastro incompleto:", erroLimpeza);
+    }
+    throw erro;
+  }
 }
 
 // Lista clientes ativos, ordenados por nome — para o Dashboard.
@@ -123,21 +140,20 @@ export async function listarSessoes(clienteId) {
 // "vigente". Use sempre esta função (nunca criar cardápio direto),
 // para nunca ficar com dois vigentes ao mesmo tempo.
 export async function criarCardapio(clienteId, dadosCardapio) {
-  // 1. Encerra qualquer cardápio ainda vigente
+  // Publica o novo cardápio e encerra os anteriores na mesma operação.
+  // Se o lote falhar, o Firestore não aplica nenhuma das alterações.
   const qVigente = query(
     collection(db, "clientes", clienteId, "cardapios"),
     where("status", "==", "vigente")
   );
   const snapVigentes = await getDocs(qVigente);
-  await Promise.all(
-    snapVigentes.docs.map((d) => updateDoc(d.ref, { status: "encerrado" }))
-  );
+  const ref = doc(collection(db, "clientes", clienteId, "cardapios"));
+  const lote = writeBatch(db);
 
-  // 2. Cria o novo, já como vigente
-  const ref = await addDoc(collection(db, "clientes", clienteId, "cardapios"), {
-    ...dadosCardapio,
-    status: "vigente",
-  });
+  snapVigentes.docs.forEach((d) => lote.update(d.ref, { status: "encerrado" }));
+  lote.set(ref, { ...dadosCardapio, status: "vigente" });
+  await lote.commit();
+
   return ref.id;
 }
 
@@ -193,7 +209,7 @@ export async function salvarCheckin(clienteId, data, dadosParciais) {
   const ref = doc(db, "clientes", clienteId, "checkins", data);
   await setDoc(
     ref,
-    { ...dadosParciais, atualizadoEm: serverTimestamp() },
+    { ...dadosParciais, data, atualizadoEm: serverTimestamp() },
     { merge: true }
   );
 }
@@ -206,13 +222,12 @@ export async function obterCheckin(clienteId, data) {
 
 // Busca os últimos N check-ins — para o Resumo/Dashboard.
 export async function listarUltimosCheckins(clienteId, quantidade = 7) {
-  const q = query(
-    collection(db, "clientes", clienteId, "checkins"),
-    orderBy("data", "desc"),
-    limit(quantidade)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // Ordena pelo ID (AAAA-MM-DD), incluindo registros antigos sem campo "data".
+  const snap = await getDocs(collection(db, "clientes", clienteId, "checkins"));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => b.id.localeCompare(a.id))
+    .slice(0, quantidade);
 }
 
 // ============================================================
