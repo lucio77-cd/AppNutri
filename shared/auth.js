@@ -57,22 +57,23 @@ export async function criarAcessoCliente(codigo) {
   return { uid, senha };
 }
 
+function escolherCaracterSeguro(chars) {
+  const limite = Math.floor(0x100000000 / chars.length) * chars.length;
+  const valor = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(valor);
+  } while (valor[0] >= limite);
+  return chars[valor[0] % chars.length];
+}
+
 function gerarSenhaAleatoria() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let senha = "";
-  for (let i = 0; i < 8; i++) {
-    senha += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return senha;
+  return Array.from({ length: 12 }, () => escolherCaracterSeguro(chars)).join("");
 }
 
 export function gerarCodigoAcesso() {
-  const chars = "Tzcb9pugJvN57n5YI1TUQ5zRu4h1";
-  let codigo = "";
-  for (let i = 0; i < 6; i++) {
-    codigo += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return codigo;
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 8 }, () => escolherCaracterSeguro(chars)).join("");
 }
 
 export function logout() {
