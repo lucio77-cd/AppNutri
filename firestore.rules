@@ -65,15 +65,19 @@ service cloud.firestore {
         allow read: if isNutri() || isDono(id);
 
         allow create: if isDono(id) && consentOk(id)
+          && request.resource.data.keys().hasOnly(['status', 'textoLivre'])
           && request.resource.data.status in ['rascunho', 'enviada'];
 
         allow update: if
-          // nutricionista só pode mudar o status (ex: marcar como revisada)
+          // nutricionista só pode mudar o status e a data da revisão
           (isNutri() && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['status', 'revisadaEm']))
-          // cliente só pode editar enquanto ainda não foi revisada
+          // cliente só pode editar os campos da anamnese enquanto não foi revisada
           || (isDono(id) && consentOk(id)
               && resource.data.status != 'revisada'
+              && request.resource.data.keys().hasOnly(['status', 'textoLivre'])
+              && request.resource.data.diff(resource.data)
+                   .affectedKeys().hasOnly(['status', 'textoLivre'])
               && request.resource.data.status in ['rascunho', 'enviada']);
 
         allow delete: if false;
