@@ -1,0 +1,94 @@
+/* css/cliente.css */
+:root {
+  --cliente-primaria: #176b55;
+  --cliente-primaria-escura: #105241;
+  --cliente-fundo: #f4f8f6;
+  --cliente-borda: #dce8e2;
+  --cliente-suave: #5e7168;
+}
+body.pagina-login-cliente,
+body.pagina-area-cliente {
+  background: var(--cliente-fundo);
+  color: #19352b;
+}
+.pagina-login-cliente .container,
+.pagina-area-cliente .container {
+  max-width: 760px;
+}
+.login-cliente-wrap {
+  width: min(100% - 32px, 920px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 36px;
+  padding: 32px 0;
+}
+.marca-cliente { padding: 12px; }
+.marca-icone {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: var(--cliente-primaria);
+  color: white;
+  font-size: 32px;
+  font-weight: 300;
+}
+.sobretitulo {
+  margin: 22px 0 8px;
+  color: var(--cliente-primaria);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+.marca-cliente h1 { font-size: clamp(30px, 4vw, 44px); line-height: 1.1; margin-bottom: 14px; }
+.marca-cliente > p:last-child { color: var(--cliente-suave); line-height: 1.6; max-width: 330px; }
+.painel-login {
+  padding: 28px;
+  border-color: var(--cliente-borda);
+  border-radius: 20px;
+  box-shadow: 0 16px 48px rgba(23, 66, 48, .07);
+}
+.painel-login h2 { margin-bottom: 8px; }
+.texto-suave, .ajuda-login { color: var(--cliente-suave); font-size: 14px; line-height: 1.5; }
+.painel-login .campo { margin-top: 18px; }
+.painel-login .campo input { min-height: 48px; border-color: var(--cliente-borda); }
+.painel-login .btn, .area-cliente .btn { background: var(--cliente-primaria); }
+.painel-login .btn:hover, .area-cliente .btn:hover { background: var(--cliente-primaria-escura); }
+.painel-login button:disabled { opacity: .65; cursor: wait; }
+.ajuda-login { margin: 18px 0; }
+.link-secundario { color: var(--cliente-primaria); font-size: 14px; font-weight: 650; }
+.topo-cliente { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+.topo-cliente .marca-mini { font-weight:800; letter-spacing:1px; color:var(--cliente-primaria); }
+.botao-texto { border:0; background:transparent; color:var(--cliente-suave); padding:8px; cursor:pointer; }
+.boas-vindas { padding:24px; border:0; border-radius:18px; background:var(--cliente-primaria); color:#fff; margin-bottom:18px; }
+.boas-vindas p { margin:8px 0 0; color:#e0f2e9; }
+.area-cliente .card { border-color:var(--cliente-borda); border-radius:16px; }
+.area-cliente h2 { font-size:19px; }
+.cartao-vazio { color:var(--cliente-suave); font-size:14px; }
+.refeicao-cliente { padding:14px 0; border-bottom:1px solid var(--cliente-borda); }
+.refeicao-cliente:last-child { border-bottom:0; }
+.refeicao-cliente strong { display:block; margin-bottom:5px; }
+.refeicao-horario { color:var(--cliente-primaria); font-size:13px; font-weight:700; }
+.lista-itens { margin:8px 0 0; padding-left:20px; line-height:1.6; }
+.meta-cardapio { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.meta-cardapio span { border-radius:999px; background:#e9f4ee; color:var(--cliente-primaria-escura); padding:6px 10px; font-size:12px; font-weight:650; }
+.checkin-refeicao { display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--cliente-borda); }
+.checkin-refeicao input { width:20px; height:20px; margin-top:2px; accent-color:var(--cliente-primaria); }
+.checkin-refeicao span { flex:1; }
+.area-cliente textarea { min-height:90px; resize:vertical; }
+.aviso-consentimento { border-left:4px solid #b7791f; background:#fff8e8; padding:12px 14px; border-radius:8px; font-size:14px; line-height:1.55; margin-bottom:14px; }
+.mensagem-sucesso { color:var(--cliente-primaria-escura); font-size:14px; }
+@media (max-width: 680px) {
+  .login-cliente-wrap { grid-template-columns:1fr; align-content:center; gap:18px; width:min(100% - 24px, 460px); }
+  .marca-cliente { padding:8px 4px; }
+  .marca-cliente h1 { font-size:30px; }
+  .marca-icone { width:46px; height:46px; border-radius:15px; }
+  .sobretitulo { margin-top:12px; }
+  .painel-login { padding:22px; }
+  .pagina-area-cliente .container { padding:12px; }
+  .boas-vindas { padding:20px; }
+}

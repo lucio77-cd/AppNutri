@@ -49,7 +49,7 @@ service cloud.firestore {
     // ---------- Cliente ----------
 
     match /clientes/{id} {
-      allow read: if isNutri() || isDono(id);
+      allow read: if isNutri() || (request.auth != null && resource.data.authUid == request.auth.uid);
       allow create, delete: if isNutri();
 
       // Nutricionista edita tudo. Cliente só edita campos não clínicos,

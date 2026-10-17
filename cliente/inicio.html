@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b55">
+  <title>Minha área — AppNutri</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/cliente.css">
+</head>
+<body class="pagina-area-cliente">
+  <main class="container area-cliente">
+    <header class="topo-cliente">
+      <span class="marca-mini">+ APP NUTRI</span>
+      <button class="botao-texto" id="btnSair" type="button">Sair</button>
+    </header>
+
+    <section class="boas-vindas">
+      <p class="sobretitulo" style="color:#d4eee2;margin-top:0">SUA ÁREA</p>
+      <h1 id="nomeCliente">Olá!</h1>
+      <p id="objetivoCliente">Aqui você acompanha seu plano e sua rotina.</p>
+    </section>
+
+    <p id="msgGeral" class="erro escondido" role="alert"></p>
+    <section id="secaoConsentimento" class="card escondido">
+      <h2>Antes de começar</h2>
+      <p>Para usar esta área, precisamos registrar seu consentimento para o tratamento dos dados pessoais e de saúde que você decidir informar. Esses dados serão usados para acompanhar seu atendimento nutricional e serão acessíveis à sua nutricionista.</p>
+      <div class="aviso-consentimento">Preencha apenas informações verdadeiras e relevantes ao seu atendimento. Se tiver dúvidas sobre o uso dos dados, converse com sua nutricionista antes de continuar.</div>
+      <label class="checkin-refeicao"><input type="checkbox" id="aceiteConsentimento"><span>Li as informações acima e concordo com o uso dos meus dados para o acompanhamento nutricional.</span></label>
+      <button id="btnAceitarConsentimento" class="btn" type="button">Concordar e continuar</button>
+      <p id="msgConsentimento" class="erro escondido" role="alert"></p>
+    </section>
+
+    <div id="conteudoCliente" class="escondido">
+      <section class="card">
+        <h2>Meu cardápio</h2>
+        <p id="statusCardapio" class="cartao-vazio">Carregando seu cardápio...</p>
+        <div id="cardapio"></div>
+      </section>
+
+      <section class="card" id="secaoAnamnese">
+        <h2>Conhecendo você</h2>
+        <p class="texto-suave">Estas informações ajudam sua nutricionista a compreender melhor seus objetivos e seu histórico.</p>
+        <p id="statusAnamnese" class="cartao-vazio"></p>
+        <form id="formAnamnese">
+          <div class="campo">
+            <label for="historicoSaude">Histórico de saúde (opcional)</label>
+            <textarea id="historicoSaude" rows="4" placeholder="Informe o que considerar importante para seu atendimento."></textarea>
+          </div>
+          <div class="campo">
+            <label for="objetivoDetalhado">O que você gostaria de alcançar?</label>
+            <textarea id="objetivoDetalhado" rows="3" placeholder="Conte seus objetivos e dificuldades."></textarea>
+          </div>
+          <button id="btnSalvarAnamnese" class="btn" type="submit">Enviar informações</button>
+          <p id="msgAnamnese" class="erro escondido" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="card" id="secaoCheckin">
+        <h2>Meu acompanhamento diário</h2>
+        <p id="statusCheckin" class="cartao-vazio"></p>
+        <form id="formCheckin" class="escondido">
+          <div id="listaCheckin"></div>
+          <div class="campo" style="margin-top:14px">
+            <label for="pesoCheckin">Peso de hoje em kg (opcional)</label>
+            <input id="pesoCheckin" type="number" min="0" max="500" step="0.1" inputmode="decimal">
+          </div>
+          <div class="campo">
+            <label for="fomeCheckin">Nível de fome (1 a 5, opcional)</label>
+            <select id="fomeCheckin">
+              <option value="">Não informar</option><option value="1">1 — Muito baixo</option><option value="2">2</option><option value="3">3 — Moderado</option><option value="4">4</option><option value="5">5 — Muito alto</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="energiaCheckin">Nível de energia (1 a 5, opcional)</label>
+            <select id="energiaCheckin">
+              <option value="">Não informar</option><option value="1">1 — Muito baixa</option><option value="2">2</option><option value="3">3 — Moderada</option><option value="4">4</option><option value="5">5 — Muito alta</option>
+            </select>
+          </div>
+          <button class="btn" type="submit">Salvar check-in de hoje</button>
+          <p id="msgCheckin" class="erro escondido" role="alert"></p>
+        </form>
+      </section>
+      <p class="texto-suave">Seu acompanhamento digital não substitui orientações profissionais ou atendimento de urgência.</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "/shared/firebase-config.js";
+    import { observarLogin, logout } from "/shared/auth.js";
+    import {
+      collection, query, where, limit, getDocs, getDoc, doc,
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    import {
+      obterCardapioVigente, obterConsentimento, aceitarConsentimento,
+      obterAnamneseInicial, salvarAnamneseInicial, obterCheckin, salvarCheckin,
+      atualizarCliente,
+    } from "/shared/db.js";
+
+    const $ = (id) => document.getElementById(id);
+    let cliente = null;
+    let cardapioAtual = null;
+    let consentimentoAceito = false;
+    let anamneseRevisada = false;
+
+    function escapeHTML(valor) {
+      return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[c]);
+    }
+
+    function dataLocalISO() {
+      const agora = new Date();
+      const ano = agora.getFullYear();
+      const mes = String(agora.getMonth() + 1).padStart(2, "0");
+      const dia = String(agora.getDate()).padStart(2, "0");
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    function mostrarErro(id, texto) {
+      $(id).textContent = texto;
+      $(id).classList.remove("escondido");
+    }
+
+    function esconderErro(id) {
+      $(id).classList.add("escondido");
+    }
+
+    $("btnSair").addEventListener("click", async () => {
+      await logout();
+      window.location.replace("/cliente/login.html");
+    });
+
+    $("btnAceitarConsentimento").addEventListener("click", async () => {
+      esconderErro("msgConsentimento");
+      if (!$("aceiteConsentimento").checked) {
+        mostrarErro("msgConsentimento", "Marque a opção de consentimento para continuar.");
+        return;
+      }
+      const botao = $("btnAceitarConsentimento");
+      botao.disabled = true;
+      try {
+        await aceitarConsentimento(cliente.id, "Consentimento AppNutri — versão 1");
+        await atualizarCliente(cliente.id, { primeiroAcessoConcluido: true });
+        consentimentoAceito = true;
+        $("secaoConsentimento").classList.add("escondido");
+        $("conteudoCliente").classList.remove("escondido");
+        await carregarConteudo();
+      } catch (erro) {
+        console.error(erro);
+        mostrarErro("msgConsentimento", "Não foi possível registrar o consentimento. Tente novamente ou fale com sua nutricionista.");
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    $("formAnamnese").addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      esconderErro("msgAnamnese");
+      if (anamneseRevisada) return;
+      const botao = $("btnSalvarAnamnese");
+      botao.disabled = true;
+      try {
+        await salvarAnamneseInicial(cliente.id, {
+          textoLivre: {
+            historicoSaude: $("historicoSaude").value.trim(),
+            objetivoDetalhado: $("objetivoDetalhado").value.trim(),
+          },
+        });
+        $("msgAnamnese").textContent = "Informações enviadas para sua nutricionista.";
+        $("msgAnamnese").classList.remove("escondido");
+        $("msgAnamnese").classList.add("mensagem-sucesso");
+        $("statusAnamnese").textContent = "Anamnese enviada. Você poderá editar enquanto ela não for revisada.";
+      } catch (erro) {
+        console.error(erro);
+        mostrarErro("msgAnamnese", "Não foi possível salvar as informações. Verifique sua conexão e tente novamente.");
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    $("formCheckin").addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      esconderErro("msgCheckin");
+      const botao = $("formCheckin").querySelector("button[type=submit]");
+      botao.disabled = true;
+      try {
+        const refeicoes = [...document.querySelectorAll("[data-refeicao-id]")].map((el) => ({
+          id: el.dataset.refeicaoId,
+          nome: el.dataset.refeicaoNome,
+          feita: el.checked,
+        }));
+        const pesoTexto = $("pesoCheckin").value;
+        const fomeTexto = $("fomeCheckin").value;
+        const energiaTexto = $("energiaCheckin").value;
+        const dados = {
+          refeicoes,
+          peso: pesoTexto === "" ? null : Number(pesoTexto),
+          sintomas: {
+            fome: fomeTexto === "" ? null : Number(fomeTexto),
+            energia: energiaTexto === "" ? null : Number(energiaTexto),
+          },
+        };
+        await salvarCheckin(cliente.id, dataLocalISO(), dados);
+        $("msgCheckin").textContent = "Check-in de hoje salvo.";
+        $("msgCheckin").classList.remove("escondido");
+        $("msgCheckin").classList.add("mensagem-sucesso");
+      } catch (erro) {
+        console.error(erro);
+        mostrarErro("msgCheckin", "Não foi possível salvar o check-in. Tente novamente.");
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    observarLogin(async (user) => {
+      if (!user) {
+        window.location.replace("/cliente/login.html");
+        return;
+      }
+      try {
+        const q = query(collection(db, "clientes"), where("authUid", "==", user.uid), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          await logout();
+          mostrarErro("msgGeral", "Não encontramos um cadastro vinculado a este acesso. Entre em contato com sua nutricionista.");
+          return;
+        }
+        cliente = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        $("nomeCliente").textContent = `Olá, ${cliente.nome || "bem-vindo(a)"}!`;
+        $("objetivoCliente").textContent = cliente.objetivo || "Aqui você acompanha seu plano e sua rotina.";
+        const consentimento = await obterConsentimento(cliente.id);
+        consentimentoAceito = Boolean(consentimento && consentimento.revogadoEm == null);
+        if (!consentimentoAceito) {
+          $("secaoConsentimento").classList.remove("escondido");
+          $("conteudoCliente").classList.add("escondido");
+          return;
+        }
+        $("conteudoCliente").classList.remove("escondido");
+        await carregarConteudo();
+      } catch (erro) {
+        console.error(erro);
+        mostrarErro("msgGeral", "Não foi possível carregar sua área. Confira a conexão e tente novamente.");
+      }
+    });
+
+    async function carregarConteudo() {
+      await carregarCardapio();
+      await Promise.all([carregarAnamnese(), carregarCheckin()]);
+    }
+
+    async function carregarCardapio() {
+      try {
+        cardapioAtual = await obterCardapioVigente(cliente.id);
+        const div = $("cardapio");
+        if (!cardapioAtual) {
+          $("statusCardapio").textContent = "Sua nutricionista ainda não publicou um cardápio vigente.";
+          div.innerHTML = "";
+          return;
+        }
+        const formatarData = (valor) => {
+          if (!valor) return "—";
+          const data = valor.toDate ? valor.toDate() : new Date(valor);
+          return Number.isNaN(data.getTime()) ? "—" : data.toLocaleDateString("pt-BR");
+        };
+        $("statusCardapio").textContent = `Válido de ${formatarData(cardapioAtual.dataInicio)} até ${formatarData(cardapioAtual.dataFim)}.`;
+        const metas = cardapioAtual.metas || {};
+        const metasHTML = [
+          metas.kcal != null ? `<span>${escapeHTML(metas.kcal)} kcal</span>` : "",
+          metas.ptn != null ? `<span>Proteínas: ${escapeHTML(metas.ptn)} g</span>` : "",
+          metas.cho != null ? `<span>Carboidratos: ${escapeHTML(metas.cho)} g</span>` : "",
+          metas.lip != null ? `<span>Gorduras: ${escapeHTML(metas.lip)} g</span>` : "",
+        ].filter(Boolean).join("");
+        const refeicoesHTML = (cardapioAtual.refeicoes || []).map((r) => `
+          <article class="refeicao-cliente">
+            <span class="refeicao-horario">${escapeHTML(r.horario || "Horário não definido")}</span>
+            <strong>${escapeHTML(r.nome || "Refeição")}</strong>
+            <ul class="lista-itens">${(r.itens || []).map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>
+          </article>
+        `).join("");
+        div.innerHTML = `${metasHTML ? `<div class="meta-cardapio">${metasHTML}</div>` : ""}${refeicoesHTML || '<p class="cartao-vazio">O cardápio não possui refeições cadastradas.</p>'}${cardapioAtual.orientacoes ? `<div class="refeicao-cliente"><strong>Orientações gerais</strong><p>${escapeHTML(cardapioAtual.orientacoes)}</p></div>` : ""}`;
+      } catch (erro) {
+        console.error(erro);
+        $("statusCardapio").textContent = "Não foi possível carregar o cardápio.";
+      }
+    }
+
+    async function carregarAnamnese() {
+      try {
+        const anamnese = await obterAnamneseInicial(cliente.id);
+        if (anamnese?.textoLivre) {
+          $("historicoSaude").value = anamnese.textoLivre.historicoSaude || "";
+          $("objetivoDetalhado").value = anamnese.textoLivre.objetivoDetalhado || "";
+        }
+        anamneseRevisada = anamnese?.status === "revisada";
+        if (anamneseRevisada) {
+          $("statusAnamnese").textContent = "Sua nutricionista já revisou estas informações. A edição está bloqueada.";
+          $("historicoSaude").disabled = true;
+          $("objetivoDetalhado").disabled = true;
+          $("btnSalvarAnamnese").disabled = true;
+        } else if (anamnese?.status === "enviada") {
+          $("statusAnamnese").textContent = "Anamnese enviada. Você pode atualizar as informações até a revisão.";
+        } else {
+          $("statusAnamnese").textContent = "Ainda não enviou suas informações.";
+        }
+      } catch (erro) {
+        console.error(erro);
+        $("statusAnamnese").textContent = "Não foi possível carregar a anamnese.";
+      }
+    }
+
+    async function carregarCheckin() {
+      if (cliente.acompanhaDiario !== true) {
+        $("statusCheckin").textContent = "O acompanhamento diário ainda não está ativado para seu cadastro. Se desejar usar este recurso, converse com sua nutricionista.";
+        $("formCheckin").classList.add("escondido");
+        return;
+      }
+      try {
+        const hoje = dataLocalISO();
+        const checkin = await obterCheckin(cliente.id, hoje);
+        const refeicoes = cardapioAtual?.refeicoes || [];
+        $("statusCheckin").textContent = `Registre como foi sua rotina em ${new Date().toLocaleDateString("pt-BR")}.`;
+        $("listaCheckin").innerHTML = refeicoes.length
+          ? refeicoes.map((r, i) => {
+              const id = r.id || `refeicao-${i + 1}`;
+              const feita = (checkin?.refeicoes || []).some((cr) => cr.id === id && cr.feita);
+              return `<label class="checkin-refeicao"><input type="checkbox" data-refeicao-id="${escapeHTML(id)}" data-refeicao-nome="${escapeHTML(r.nome || "Refeição")}" ${feita ? "checked" : ""}><span><strong>${escapeHTML(r.nome || "Refeição")}</strong><br><small>${escapeHTML(r.horario || "Horário não definido")}</small></span></label>`;
+            }).join("")
+          : '<p class="cartao-vazio">Quando houver um cardápio com refeições, elas aparecerão aqui.</p>';
+        $("pesoCheckin").value = checkin?.peso ?? "";
+        $("fomeCheckin").value = checkin?.sintomas?.fome ?? "";
+        $("energiaCheckin").value = checkin?.sintomas?.energia ?? "";
+        $("formCheckin").classList.remove("escondido");
+      } catch (erro) {
+        console.error(erro);
+        $("statusCheckin").textContent = "Não foi possível carregar o check-in de hoje.";
+      }
+    }
+  </script>
+</body>
+</html>
