@@ -36,7 +36,7 @@
     </section>
   </main>
   <script type="module">
-    import { loginCliente, observarLogin } from "/shared/auth.js";
+    import { loginCliente } from "/shared/auth.js";
 
     const form = document.getElementById("formLogin");
     const codigo = document.getElementById("codigo");
@@ -44,9 +44,6 @@
     const msgErro = document.getElementById("msgErro");
     const btn = document.getElementById("btnEntrar");
 
-    observarLogin((user) => {
-      if (user) window.location.replace("/cliente/inicio.html");
-    });
 
     form.addEventListener("submit", async (evento) => {
       evento.preventDefault();
