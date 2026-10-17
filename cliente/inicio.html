@@ -245,7 +245,8 @@
     });
 
     async function carregarConteudo() {
-      await Promise.all([carregarCardapio(), carregarAnamnese(), carregarCheckin()]);
+      await carregarCardapio();
+      await Promise.all([carregarAnamnese(), carregarCheckin()]);
     }
 
     async function carregarCardapio() {
