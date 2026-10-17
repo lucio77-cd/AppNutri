@@ -3,13 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>App Nutrição</title>
+  <meta name="theme-color" content="#176b55">
+  <title>AppNutri — Acesso</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/cliente.css">
+  <style>
+    .inicio-wrap{width:min(100% - 28px,560px);min-height:100dvh;margin:0 auto;display:flex;flex-direction:column;justify-content:center;padding:28px 0}
+    .inicio-cabecalho{margin-bottom:24px}
+    .inicio-cabecalho .marca-icone{margin-bottom:18px}
+    .opcao-acesso{display:block;padding:20px;border:1px solid var(--cliente-borda);border-radius:16px;background:white;color:inherit;text-decoration:none;margin:12px 0}
+    .opcao-acesso strong{display:block;font-size:18px;margin-bottom:6px}
+    .opcao-acesso span{color:var(--cliente-suave);font-size:14px;line-height:1.5}
+    .opcao-acesso:hover{border-color:var(--cliente-primaria)}
+  </style>
 </head>
-<body>
-  <script>
-    // Roteador simples: manda para o login correto.
-    // Por enquanto só existe o lado da nutricionista pronto.
-    window.location.href = "/nutri/login.html";
-  </script>
+<body class="pagina-area-cliente">
+  <main class="inicio-wrap">
+    <header class="inicio-cabecalho">
+      <div class="marca-icone" aria-hidden="true">+</div>
+      <p class="sobretitulo">APP NUTRI</p>
+      <h1>Bem-vindo(a)</h1>
+      <p class="texto-suave">Escolha a área de acesso.</p>
+    </header>
+    <a class="opcao-acesso" href="/cliente/login.html">
+      <strong>Sou cliente</strong>
+      <span>Entrar com o código e a senha recebidos da nutricionista.</span>
+    </a>
+    <a class="opcao-acesso" href="/nutri/login.html">
+      <strong>Sou nutricionista</strong>
+      <span>Acessar a gestão de clientes e planos nutricionais.</span>
+    </a>
+  </main>
 </body>
 </html>
