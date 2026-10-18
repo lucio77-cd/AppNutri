@@ -52,7 +52,9 @@
     <div class="modal-conteudo">
       <h2>Acesso criado</h2>
       <p>Envie estes dados para o cliente:</p>
-      <p><strong>Código:</strong></p>
+      <p><strong>ID do cliente (interno):</strong></p>
+      <div class="codigo-senha" id="idClienteGerado"></div>
+      <p><strong>Login / código:</strong></p>
       <div class="codigo-senha" id="codigoGerado"></div>
       <p><strong>Senha:</strong></p>
       <div class="codigo-senha" id="senhaGerada"></div>
@@ -100,10 +102,12 @@
           const status = c.statusAcompanhamento || (c.ativo === false ? "suspenso" : "ativo");
           const statusTexto = status === "excluido" ? "Arquivado" : status === "suspenso" ? "Acompanhamento suspenso" : "Em acompanhamento";
           const acoes = status === "ativo"
-            ? `<button type="button" class="btn btn-secundario" data-acao="suspender" data-id="${c.id}" style="width:auto;padding:7px 10px;">Suspender</button>
+            ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${c.id}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
+               <button type="button" class="btn btn-secundario" data-acao="suspender" data-id="${c.id}" style="width:auto;padding:7px 10px;">Suspender</button>
                <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Excluir</button>`
             : status === "suspenso"
-              ? `<button type="button" class="btn" data-acao="reativar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Retomar</button>
+              ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${c.id}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
+                 <button type="button" class="btn" data-acao="reativar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Retomar</button>
                  <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Arquivar</button>`
               : "";
           return `
@@ -135,6 +139,14 @@
             const cliente = clientes.find((c) => c.id === id);
             if (!cliente) return;
             const acao = btn.dataset.acao;
+            if (acao === "acesso") {
+              document.getElementById("idClienteGerado").textContent = cliente.id;
+              document.getElementById("codigoGerado").textContent = cliente.codigo || "Código não encontrado neste cadastro";
+              document.getElementById("senhaGerada").textContent = "Por segurança, a senha não fica salva. Se o cliente perdeu a senha, será necessário configurar uma recuperação segura.";
+              document.getElementById("btnCopiar").onclick = () => navigator.clipboard.writeText(`ID: ${cliente.id}\\nLogin/código: ${cliente.codigo || ""}`);
+              document.getElementById("modalAcesso").classList.remove("escondido");
+              return;
+            }
             try {
               btn.disabled = true;
               if (acao === "suspender") {
@@ -201,11 +213,12 @@
       };
 
       try {
-        const { codigo, senha } = await cadastrarNovoCliente(dados);
+        const { clienteId, codigo, senha } = await cadastrarNovoCliente(dados);
 
         modalNovo.classList.add("escondido");
         document.getElementById("formNovoCliente").reset();
 
+        document.getElementById("idClienteGerado").textContent = clienteId;
         document.getElementById("codigoGerado").textContent = codigo;
         document.getElementById("senhaGerada").textContent = senha;
         modalAcesso.classList.remove("escondido");
