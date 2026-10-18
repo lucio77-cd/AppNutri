@@ -222,7 +222,12 @@
       }
       try {
         etapaCarregamento = "buscar cadastro do cliente";
-        const q = query(collection(db, "clientes"), where("authUid", "==", user.uid), limit(1));
+        const q = query(
+          collection(db, "clientes"),
+          where("authUid", "==", user.uid),
+          where("ativo", "==", true),
+          limit(1)
+        );
         const snap = await getDocs(q);
         if (snap.empty) {
           await logout();
