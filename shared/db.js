@@ -5,9 +5,10 @@
 
 import { db } from "./firebase-config.js";
 import { criarAcessoCliente, gerarCodigoAcesso } from "./auth.js";
+import { publicarCardapioAtomico } from "./cardapio-publicacao-core.js";
 import {
   collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc,
-  writeBatch, query, where, orderBy, limit, serverTimestamp,
+  runTransaction, query, where, orderBy, limit, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // ============================================================
@@ -151,36 +152,18 @@ export async function listarSessoes(clienteId) {
 // CARDÁPIOS
 // ============================================================
 
-// Publica um cardápio novo e encerra os anteriores em uma única gravação.
-// Se o commit falhar, o Firestore não aplica nenhuma das alterações: o cardápio
-// vigente anterior permanece vigente.
+// Publica um cardápio com transação serializada pelo documento do cliente.
+// O campo cardapioVigenteId funciona como ponteiro e evita duas publicações
+// simultâneas deixarem mais de um cardápio vigente.
 export async function criarCardapio(clienteId, dadosCardapio) {
-  if (!clienteId || typeof clienteId !== "string") {
-    throw new Error("ID do cliente inválido.");
-  }
-  if (!dadosCardapio || typeof dadosCardapio !== "object" || Array.isArray(dadosCardapio)) {
-    throw new Error("Dados do cardápio inválidos.");
-  }
-
-  const cardapiosRef = collection(db, "clientes", clienteId, "cardapios");
-  const qVigente = query(cardapiosRef, where("status", "==", "vigente"));
-  const snapVigentes = await getDocs(qVigente);
-
-  // Reserva a referência antes do commit, sem gravar ainda no banco.
-  const novoCardapioRef = doc(cardapiosRef);
-  const batch = writeBatch(db);
-
-  // Encerrar e publicar ficam atômicos: ou tudo é aplicado, ou nada é aplicado.
-  snapVigentes.docs.forEach((cardapio) => {
-    batch.update(cardapio.ref, { status: "encerrado" });
+  return publicarCardapioAtomico({
+    db,
+    clienteId,
+    dadosCardapio,
+    sdk: {
+      collection, doc, getDocs, query, where, runTransaction,
+    },
   });
-  batch.set(novoCardapioRef, {
-    ...dadosCardapio,
-    status: "vigente",
-  });
-
-  await batch.commit();
-  return novoCardapioRef.id;
 }
 
 // Busca o cardápio vigente do cliente — usado na Home do dia dele
