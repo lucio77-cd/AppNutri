@@ -43,15 +43,17 @@
         <p class="texto-suave">Estas informações ajudam sua nutricionista a compreender melhor seus objetivos e seu histórico.</p>
         <p id="statusAnamnese" class="cartao-vazio"></p>
         <form id="formAnamnese">
-          <div class="campo">
-            <label for="historicoSaude">Histórico de saúde (opcional)</label>
-            <textarea id="historicoSaude" rows="4" placeholder="Informe o que considerar importante para seu atendimento."></textarea>
+          <div class="anamnese-cabecalho">
+            <div class="anamnese-progresso"><span id="anamneseEtapaTexto">Etapa 1 de 7</span><span id="anamnesePercentual">14%</span></div>
+            <div class="anamnese-trilho"><div id="anamneseBarra" class="anamnese-barra"></div></div>
           </div>
-          <div class="campo">
-            <label for="objetivoDetalhado">O que você gostaria de alcançar?</label>
-            <textarea id="objetivoDetalhado" rows="3" placeholder="Conte seus objetivos e dificuldades."></textarea>
+          <div id="anamnesePerguntas" aria-live="polite"></div>
+          <div class="anamnese-navegacao">
+            <button id="btnAnamneseVoltar" class="btn btn-secundario" type="button">Voltar</button>
+            <button id="btnAnamneseAvancar" class="btn" type="button">Continuar</button>
+            <button id="btnSalvarAnamnese" class="btn escondido" type="submit">Enviar para nutricionista</button>
           </div>
-          <button id="btnSalvarAnamnese" class="btn" type="submit">Enviar informações</button>
+          <p id="anamneseSalvamento" class="texto-suave" aria-live="polite">Seu progresso será salvo ao continuar.</p>
           <p id="msgAnamnese" class="erro escondido" role="alert"></p>
         </form>
       </section>
@@ -125,6 +127,141 @@
     function esconderErro(id) {
       $(id).classList.add("escondido");
     }
+
+    const etapasAnamnese = [
+      {titulo:"Objetivos e expectativas",descricao:"Conte à nutricionista o que você busca com o acompanhamento.",perguntas:[
+        {id:"objetivos",pergunta:"Quais são seus principais objetivos?",tipo:"multi",opcoes:["Emagrecer","Ganhar peso","Ganhar massa muscular","Melhorar a saúde","Ter mais energia","Melhorar a alimentação","Ajudar no controle de uma condição de saúde","Melhorar minha relação com a comida","Outro assunto para conversar na consulta"]},
+        {id:"prioridade",pergunta:"Qual é sua prioridade neste momento?",opcoes:["Emagrecer","Ganhar peso","Ganhar massa muscular","Melhorar exames ou condição de saúde","Ter mais energia","Organizar a alimentação","Ainda não tenho certeza"]},
+        {id:"prazo",pergunta:"Existe algum prazo ou evento que influencia seu objetivo?",opcoes:["Não","Nos próximos 3 meses","Entre 3 e 6 meses","Daqui a mais de 6 meses","Prefiro conversar na consulta"]},
+        {id:"dietasAnteriores",pergunta:"Você já tentou seguir uma dieta ou plano alimentar?",opcoes:["Nunca","Sim, por conta própria","Sim, com nutricionista","Sim, com outro profissional","Prefiro não responder"]},
+        {id:"dificuldades",pergunta:"O que costuma dificultar mudanças na alimentação?",tipo:"multi",opcoes:["Falta de tempo","Fome ou vontade de beliscar","Ansiedade ou estresse","Custo dos alimentos","Rotina de trabalho","Não saber o que preparar","Eventos sociais","Dificuldade para manter a rotina","Não se aplica","Outro motivo para conversar na consulta"],showIf:a=>a.dietasAnteriores&&a.dietasAnteriores!=="Nunca"}
+      ]},
+      {titulo:"Saúde e histórico clínico",descricao:"Selecione o que se aplica. As respostas não geram diagnósticos automáticos.",perguntas:[
+        {id:"condicoes",pergunta:"Algum profissional já informou que você tem alguma destas condições?",tipo:"multi",opcoes:["Diabetes","Pré-diabetes ou resistência à insulina","Pressão alta","Colesterol ou triglicerídeos elevados","Doença renal","Doença do fígado","Doença da tireoide","Doença gastrointestinal","Anemia ou deficiência nutricional","Doença cardiovascular","Nenhuma dessas","Outra condição para conversar na consulta","Não sei"]},
+        {id:"condicaoDetalhe",pergunta:"Qual outra condição você gostaria de discutir?",tipo:"multi",opcoes:["Condição hormonal","Condição autoimune","Condição óssea","Condição respiratória","Condição neurológica","Outra condição","Prefiro conversar na consulta"],showIf:a=>a.condicoes&&a.condicoes.includes("Outra condição para conversar na consulta")},
+        {id:"medicamentos",pergunta:"Você usa medicamentos atualmente?",opcoes:["Sim, diariamente","Sim, ocasionalmente","Não","Não tenho certeza"]},
+        {id:"medicamentosTipo",pergunta:"Que tipo de medicamento utiliza?",tipo:"multi",opcoes:["Para pressão ou coração","Para diabetes ou glicemia","Para colesterol","Para tireoide ou hormônios","Para saúde mental","Para estômago ou intestino","Anticoncepcional ou terapia hormonal","Outro tipo","Prefiro revisar na consulta"],showIf:a=>["Sim, diariamente","Sim, ocasionalmente"].includes(a.medicamentos)},
+        {id:"suplementos",pergunta:"Você usa vitaminas, suplementos ou produtos para treino?",opcoes:["Sim, diariamente","Sim, às vezes","Não","Não tenho certeza"]},
+        {id:"suplementosTipo",pergunta:"Quais tipos você utiliza?",tipo:"multi",opcoes:["Vitaminas ou minerais","Proteína em pó","Creatina","Produtos para treino ou energia","Produtos para emagrecimento","Fitoterápicos ou chás concentrados","Outro tipo","Prefiro revisar na consulta"],showIf:a=>["Sim, diariamente","Sim, às vezes"].includes(a.suplementos)},
+        {id:"alergias",pergunta:"Você tem alergia ou intolerância alimentar conhecida ou suspeita?",opcoes:["Alergia diagnosticada","Intolerância diagnosticada","Tenho suspeita, sem diagnóstico","Não","Não sei"]},
+        {id:"alergiasTipo",pergunta:"Quais alimentos ou grupos estão envolvidos?",tipo:"multi",opcoes:["Leite ou derivados","Trigo ou glúten","Ovo","Amendoim ou castanhas","Peixes ou frutos do mar","Soja","Vários alimentos","Outro alimento","Preciso confirmar"],showIf:a=>a.alergias&&a.alergias!=="Não"&&a.alergias!=="Não sei"},
+        {id:"cirurgias",pergunta:"Você já realizou cirurgia ou foi hospitalizado por um motivo importante?",opcoes:["Sim","Não","Prefiro não responder"]},
+        {id:"familia",pergunta:"Há histórico familiar de alguma condição relevante?",tipo:"multi",opcoes:["Diabetes","Pressão alta ou doença cardiovascular","Colesterol elevado","Obesidade","Doença da tireoide","Câncer","Doença gastrointestinal","Nenhum que eu saiba","Não sei","Prefiro não responder"]}
+      ]},
+      {titulo:"Hábitos alimentares",descricao:"Pense em uma semana habitual.",perguntas:[
+        {id:"refeicoes",pergunta:"Quantas vezes costuma comer ao longo do dia?",opcoes:["1 a 2 vezes","3 vezes","4 a 5 vezes","6 vezes ou mais","Varia muito"]},
+        {id:"cafe",pergunta:"Com que frequência toma café da manhã?",opcoes:["Todos ou quase todos os dias","3 a 4 dias por semana","1 a 2 dias por semana","Raramente ou nunca","Meu horário varia muito"]},
+        {id:"frutas",pergunta:"Com que frequência come frutas?",opcoes:["2 ou mais vezes por dia","1 vez por dia","Algumas vezes por semana","Raramente","Nunca ou quase nunca"]},
+        {id:"vegetais",pergunta:"Com que frequência come verduras ou legumes?",opcoes:["Todos os dias, em mais de uma refeição","Todos os dias, em uma refeição","Algumas vezes por semana","Raramente","Nunca ou quase nunca"]},
+        {id:"leguminosas",pergunta:"Com que frequência come feijão ou outras leguminosas?",opcoes:["Todos ou quase todos os dias","3 a 5 dias por semana","1 a 2 dias por semana","Raramente","Não costumo comer"]},
+        {id:"ultraprocessados",pergunta:"Com que frequência consome refrigerantes, salgadinhos, biscoitos recheados, embutidos ou fast-food?",opcoes:["Todos ou quase todos os dias","3 a 5 dias por semana","1 a 2 dias por semana","Menos de uma vez por semana","Raramente ou nunca"]},
+        {id:"agua",pergunta:"Quanto de água costuma beber por dia?",opcoes:["Menos de 500 ml","500 ml a 1 litro","1 a 1,5 litro","1,5 a 2 litros","Mais de 2 litros","Não sei estimar"]},
+        {id:"bebidas",pergunta:"Quais bebidas consome com frequência?",tipo:"multi",opcoes:["Água","Café ou chá sem açúcar","Café ou chá adoçado","Suco natural","Suco industrializado","Refrigerante comum","Refrigerante sem açúcar","Bebida energética","Bebida alcoólica","Leite ou bebida vegetal","Nenhuma dessas com frequência"]},
+        {id:"padrao",pergunta:"Você segue algum padrão alimentar ou evita alimentos por escolha pessoal?",tipo:"multi",opcoes:["Não sigo um padrão específico","Vegetariano","Vegano","Reduzo carboidratos","Evito lactose","Evito glúten","Por motivo religioso ou cultural","Por textura, sabor ou aversão","Outro assunto para conversar na consulta"]},
+        {id:"apetite",pergunta:"Como costuma ser seu apetite?",opcoes:["Muito baixo","Baixo","Moderado","Alto","Varia bastante","Não sei avaliar"]},
+        {id:"saciedade",pergunta:"Com que frequência sente que come além do que gostaria?",opcoes:["Nunca ou raramente","Algumas vezes por mês","Algumas vezes por semana","Quase todos os dias","Prefiro conversar em particular"]}
+      ]},
+      {titulo:"Rotina e estilo de vida",descricao:"Vamos entender como sua rotina influencia suas refeições.",perguntas:[
+        {id:"trabalho",pergunta:"Como é sua rotina de trabalho ou estudo?",opcoes:["Horário fixo durante o dia","Turnos alternados","Trabalho noturno","Escala de plantão","Trabalho em casa","Não trabalho nem estudo atualmente","Varia bastante"]},
+        {id:"localRefeicoes",pergunta:"Onde costuma fazer a maior parte das refeições?",tipo:"multi",opcoes:["Em casa","No trabalho","Restaurante ou refeitório","Lanchonete ou fast-food","Na rua, entre compromissos","Depende do dia"]},
+        {id:"preparo",pergunta:"Quem costuma preparar suas refeições?",opcoes:["Eu mesmo(a)","Outra pessoa da casa","Dividimos essa tarefa","Compro comida pronta","Varia conforme o dia"]},
+        {id:"sono",pergunta:"Quantas horas costuma dormir por noite?",opcoes:["Menos de 5 horas","5 a 6 horas","7 a 8 horas","Mais de 8 horas","Varia muito"]},
+        {id:"sonoQualidade",pergunta:"Como avalia a qualidade do seu sono?",opcoes:["Muito boa","Boa","Regular","Ruim","Muito ruim"]},
+        {id:"atividade",pergunta:"Como é sua prática de atividade física?",opcoes:["Não pratico atualmente","1 a 2 dias por semana","3 a 4 dias por semana","5 dias ou mais por semana","Meu trabalho exige esforço físico","Estou retomando a prática"]},
+        {id:"atividadeTipo",pergunta:"Que tipo de atividade pratica?",tipo:"multi",opcoes:["Caminhada ou corrida","Musculação","Esporte coletivo","Bicicleta","Dança ou aulas em grupo","Atividade física no trabalho","Outra atividade","Não se aplica"],showIf:a=>a.atividade&&a.atividade!=="Não pratico atualmente"},
+        {id:"estresse",pergunta:"Como avalia seu nível de estresse atualmente?",opcoes:["Muito baixo","Baixo","Moderado","Alto","Muito alto"]}
+      ]},
+      {titulo:"Sintomas e bem-estar",descricao:"Marque o que acontece com você. Isso ajuda a orientar a conversa clínica.",perguntas:[
+        {id:"intestino",pergunta:"Como costuma funcionar seu intestino?",opcoes:["Regular, sem desconforto","Prisão de ventre frequente","Fezes frequentemente soltas","Alterna entre prisão de ventre e fezes soltas","Varia, mas sem grande incômodo","Prefiro conversar na consulta"]},
+        {id:"digestao",pergunta:"Você sente algum destes desconfortos com frequência?",tipo:"multi",opcoes:["Inchaço abdominal","Gases","Azia ou refluxo","Dor abdominal","Náusea","Diarreia","Prisão de ventre","Nenhum desses","Prefiro conversar na consulta"]},
+        {id:"fome",pergunta:"Em que momento costuma sentir mais fome?",tipo:"multi",opcoes:["Ao acordar","Entre café da manhã e almoço","À tarde","À noite","Durante a madrugada","Não percebo horário específico"]},
+        {id:"energia",pergunta:"Como costuma ser sua energia durante o dia?",opcoes:["Muito baixa","Baixa","Moderada","Boa","Muito boa","Varia bastante"]},
+        {id:"emocaoComida",pergunta:"Você percebe que suas emoções influenciam o que ou quanto come?",opcoes:["Raramente","Às vezes","Frequentemente","Quase sempre","Prefiro conversar em particular"]},
+        {id:"perdaControle",pergunta:"Já sentiu perda de controle ao comer e isso lhe causou preocupação?",opcoes:["Nunca","Raramente","Às vezes","Frequentemente","Prefiro conversar em particular"]}
+      ]},
+      {titulo:"Condições práticas",descricao:"As orientações precisam caber na sua realidade.",perguntas:[
+        {id:"orcamento",pergunta:"Como avalia seu orçamento para alimentação?",opcoes:["Muito limitado","Limitado","Consigo comprar o básico com planejamento","Tenho flexibilidade","Prefiro não responder"]},
+        {id:"acesso",pergunta:"Consegue comprar alimentos frescos com facilidade?",opcoes:["Sim, com facilidade","Sim, mas depende do preço","Tenho dificuldade de acesso ou transporte","Depende da semana","Prefiro conversar na consulta"]},
+        {id:"cozinha",pergunta:"Quais recursos tem para preparar refeições?",tipo:"multi",opcoes:["Cozinha completa","Geladeira","Micro-ondas","Fogão simples","Marmita térmica","Quase não tenho estrutura para cozinhar","Varia conforme o local"]},
+        {id:"barreiras",pergunta:"O que mais dificulta manter a alimentação como gostaria?",tipo:"multi",opcoes:["Falta de tempo","Custo dos alimentos","Cansaço","Rotina imprevisível","Falta de apoio em casa","Poucas opções no trabalho","Vontade de doces ou petiscos","Dificuldade de planejamento","Questões emocionais","Nenhuma dificuldade importante","Outro motivo para conversar na consulta"]},
+        {id:"apoio",pergunta:"Você tem apoio para fazer mudanças na alimentação?",opcoes:["Sim, bastante","Sim, um pouco","Não tenho apoio no momento","Prefiro cuidar disso por conta própria","Não sei"]}
+      ]},
+      {titulo:"Revisão final",descricao:"Confira suas respostas e envie para a nutricionista.",perguntas:[
+        {id:"prontidao",pergunta:"Quão preparado(a) se sente para fazer mudanças na alimentação?",opcoes:["Ainda estou entendendo o que mudar","Quero começar aos poucos","Estou pronto(a) para começar","Já comecei algumas mudanças","Preciso de ajuda para escolher por onde começar"]},
+        {id:"orientacoes",pergunta:"Que tipo de acompanhamento parece mais útil para você?",opcoes:["Orientações simples e diretas","Plano alimentar estruturado","Metas pequenas e graduais","Acompanhamento frequente","Quero conversar na consulta"]},
+        {id:"temas",pergunta:"Quais temas considera importante conversar com a nutricionista?",tipo:"multi",opcoes:["Emagrecimento e peso","Ganho de massa muscular","Exames e condições de saúde","Digestão e intestino","Organização da rotina","Relação com a comida","Planejamento de refeições","Suplementação","Ainda não sei","Outro assunto para conversar na consulta"]}
+      ]}
+    ];
+    let etapaAnamneseAtual=0, respostasAnamnese={}, statusAnamneseAtual="nova";
+
+    function perguntaVisivel(q){return !q.showIf||q.showIf(respostasAnamnese);}
+    function renderizarAnamnese(){
+      const etapa=etapasAnamnese[etapaAnamneseAtual], total=etapasAnamnese.length, pct=Math.round((etapaAnamneseAtual+1)/total*100);
+      $("anamneseEtapaTexto").textContent="Etapa "+(etapaAnamneseAtual+1)+" de "+total+" · "+etapa.titulo;
+      $("anamnesePercentual").textContent=pct+"%"; $("anamneseBarra").style.width=pct+"%";
+      $("btnAnamneseVoltar").disabled=etapaAnamneseAtual===0||anamneseRevisada;
+      $("btnAnamneseAvancar").classList.toggle("escondido",etapaAnamneseAtual===total-1||anamneseRevisada);
+      $("btnSalvarAnamnese").classList.toggle("escondido",etapaAnamneseAtual!==total-1||anamneseRevisada);
+      const cont=$("anamnesePerguntas"); cont.replaceChildren();
+      const h=document.createElement("h3");h.className="anamnese-titulo";h.textContent=etapa.titulo;cont.appendChild(h);
+      const p=document.createElement("p");p.className="texto-suave";p.textContent=etapa.descricao;cont.appendChild(p);
+      etapa.perguntas.filter(perguntaVisivel).forEach(q=>{
+        const fs=document.createElement("fieldset");fs.className="anamnese-pergunta";
+        const lg=document.createElement("legend");lg.textContent=q.pergunta;fs.appendChild(lg);
+        const opts=document.createElement("div");opts.className="anamnese-opcoes";
+        q.opcoes.forEach(op=>{
+          const label=document.createElement("label");label.className="anamnese-opcao";
+          const input=document.createElement("input");input.type=q.tipo==="multi"?"checkbox":"radio";input.name=q.id;input.value=op;
+          input.checked=q.tipo==="multi"?(Array.isArray(respostasAnamnese[q.id])&&respostasAnamnese[q.id].includes(op)):respostasAnamnese[q.id]===op;
+          input.disabled=anamneseRevisada;
+          input.addEventListener("change",()=>{
+            const exclusivas=["Nenhuma dessas","Nenhum desses","Não","Não sei","Não se aplica","Não sigo um padrão específico","Não costumo comer","Nunca ou quase nunca","Nenhuma dificuldade importante","Ainda não sei","Não tenho certeza","Não percebo horário específico"];
+            if(q.tipo==="multi"){
+              let arr=Array.isArray(respostasAnamnese[q.id])?[...respostasAnamnese[q.id]]:[];
+              if(input.checked){
+                arr=exclusivas.includes(op)?[op]:[...arr.filter(x=>!exclusivas.includes(x)),op];
+              }else arr=arr.filter(x=>x!==op);
+              if(arr.length)respostasAnamnese[q.id]=arr;else delete respostasAnamnese[q.id];
+            }else respostasAnamnese[q.id]=op;
+            renderizarAnamnese();
+          });
+          const span=document.createElement("span");span.textContent=op;label.append(input,span);opts.appendChild(label);
+        });
+        fs.appendChild(opts);cont.appendChild(fs);
+      });
+      if(etapaAnamneseAtual===total-1){
+        const resumo=document.createElement("div");resumo.className="anamnese-resumo";
+        const respondidas=Object.keys(montarRespostasEstruturadas()).length;
+        resumo.textContent="Você respondeu "+respondidas+" perguntas. Pode voltar para revisar antes de enviar.";
+        cont.appendChild(resumo);
+      }
+      if(anamneseRevisada){const aviso=document.createElement("p");aviso.className="texto-suave";aviso.textContent="Sua nutricionista já revisou esta anamnese; a edição está bloqueada.";cont.appendChild(aviso);}
+    }
+    function montarRespostasEstruturadas(){
+      const out={};
+      etapasAnamnese.forEach(e=>e.perguntas.forEach(q=>{
+        const v=respostasAnamnese[q.id];if(!perguntaVisivel(q)||v==null||v===""||(Array.isArray(v)&&!v.length))return;
+        out[q.id]={categoria:e.titulo,pergunta:q.pergunta,resposta:v};
+      }));
+      return out;
+    }
+    async function persistirAnamnese(status){
+      await salvarAnamneseInicial(cliente.id,{versaoFormulario:2,respostasEstruturadas:montarRespostasEstruturadas(),atualizadoEm:new Date()},status);
+    }
+    $("btnAnamneseVoltar").addEventListener("click",()=>{if(etapaAnamneseAtual>0){etapaAnamneseAtual--;renderizarAnamnese();}});
+    $("btnAnamneseAvancar").addEventListener("click",async()=>{
+      esconderErro("msgAnamnese");const b=$("btnAnamneseAvancar");b.disabled=true;$("anamneseSalvamento").textContent="Salvando seu progresso...";
+      try{await persistirAnamnese("rascunho");etapaAnamneseAtual=Math.min(etapasAnamnese.length-1,etapaAnamneseAtual+1);renderizarAnamnese();$("anamneseSalvamento").textContent="Progresso salvo. Você pode continuar depois.";}
+      catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível salvar seu progresso. Verifique sua conexão e tente novamente.");}
+      finally{b.disabled=false;}
+    });
+    $("formAnamnese").addEventListener("submit",async ev=>{
+      ev.preventDefault();esconderErro("msgAnamnese");if(anamneseRevisada)return;
+      const b=$("btnSalvarAnamnese");b.disabled=true;$("anamneseSalvamento").textContent="Enviando suas respostas...";
+      try{await persistirAnamnese("enviada");$("msgAnamnese").textContent="Anamnese enviada para sua nutricionista.";$("msgAnamnese").classList.remove("escondido");$("msgAnamnese").classList.add("mensagem-sucesso");$("statusAnamnese").textContent="Anamnese enviada. Você poderá editar enquanto ela não for revisada.";$("anamneseSalvamento").textContent="Respostas enviadas com sucesso.";}
+      catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível enviar as respostas. Verifique sua conexão e tente novamente.");}
+      finally{b.disabled=false;}
+    });
 
     $("btnSair").addEventListener("click", async () => {
       await logout();
@@ -301,26 +438,19 @@
 
     async function carregarAnamnese() {
       try {
-        const anamnese = await obterAnamneseInicial(cliente.id);
-        if (anamnese?.textoLivre) {
-          $("historicoSaude").value = anamnese.textoLivre.historicoSaude || "";
-          $("objetivoDetalhado").value = anamnese.textoLivre.objetivoDetalhado || "";
-        }
-        anamneseRevisada = anamnese?.status === "revisada";
-        if (anamneseRevisada) {
-          $("statusAnamnese").textContent = "Sua nutricionista já revisou estas informações. A edição está bloqueada.";
-          $("historicoSaude").disabled = true;
-          $("objetivoDetalhado").disabled = true;
-          $("btnSalvarAnamnese").disabled = true;
-        } else if (anamnese?.status === "enviada") {
-          $("statusAnamnese").textContent = "Anamnese enviada. Você pode atualizar as informações até a revisão.";
-        } else {
-          $("statusAnamnese").textContent = "Ainda não enviou suas informações.";
-        }
-      } catch (erro) {
-        console.error(erro);
-        $("statusAnamnese").textContent = "Não foi possível carregar a anamnese.";
-      }
+        const anamnese=await obterAnamneseInicial(cliente.id);
+        respostasAnamnese={};
+        Object.entries(anamnese?.respostasEstruturadas||{}).forEach(([id,item])=>{respostasAnamnese[id]=item.resposta;});
+        anamneseRevisada=anamnese?.status==="revisada";
+        statusAnamneseAtual=anamnese?.status||"nova";
+        etapaAnamneseAtual=anamnese?.status==="enviada"||anamneseRevisada?etapasAnamnese.length-1:0;
+        if(anamnese?.textoLivre&&!anamnese?.respostasEstruturadas) $("statusAnamnese").textContent="Encontramos respostas antigas em texto. Elas foram preservadas e continuam visíveis para sua nutricionista.";
+        else if(anamnese?.status==="enviada") $("statusAnamnese").textContent="Anamnese enviada. Você pode atualizar as respostas até a revisão.";
+        else if(anamnese?.status==="rascunho") $("statusAnamnese").textContent="Você tem um rascunho salvo. Continue de onde parou.";
+        else if(anamneseRevisada) $("statusAnamnese").textContent="Sua nutricionista já revisou estas informações. A edição está bloqueada.";
+        else $("statusAnamnese").textContent="Responda às etapas abaixo. Seu progresso será salvo ao continuar.";
+        renderizarAnamnese();
+      } catch(e){console.error(e);$("statusAnamnese").textContent="Não foi possível carregar a anamnese.";}
     }
 
     async function carregarCheckin() {
