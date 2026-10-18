@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b55">
+  <title>Acesso do cliente — AppNutri</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/cliente.css">
+</head>
+<body class="pagina-login-cliente">
+  <main class="login-cliente-wrap">
+    <section class="marca-cliente">
+      <div class="marca-icone" aria-hidden="true">+</div>
+      <p class="sobretitulo">APP NUTRI</p>
+      <h1>Seu cuidado, mais perto.</h1>
+      <p>Entre para consultar seu cardápio e acompanhar sua rotina.</p>
+    </section>
+    <section class="painel-login card">
+      <h2>Área do cliente</h2>
+      <p class="texto-suave">Use o código e a senha fornecidos pela nutricionista.</p>
+      <form id="formLogin">
+        <div class="campo">
+          <label for="codigo">Código de acesso</label>
+          <input id="codigo" name="codigo" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" maxlength="20" required>
+        </div>
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+        </div>
+        <button id="btnEntrar" class="btn" type="submit">Entrar</button>
+        <p id="msgErro" class="erro escondido" role="alert"></p>
+      </form>
+      <p class="ajuda-login">Problemas para entrar? Peça à sua nutricionista para confirmar seu código e gerar um novo acesso.</p>
+      <a class="link-secundario" href="/nutri/login.html">Acesso da nutricionista</a>
+    </section>
+  </main>
+  <script type="module">
+    import { loginCliente } from "/shared/auth.js";
+
+    const form = document.getElementById("formLogin");
+    const codigo = document.getElementById("codigo");
+    const senha = document.getElementById("senha");
+    const msgErro = document.getElementById("msgErro");
+    const btn = document.getElementById("btnEntrar");
+
+
+    form.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      msgErro.classList.add("escondido");
+      btn.disabled = true;
+      btn.textContent = "Verificando...";
+      try {
+        await loginCliente(codigo.value.trim(), senha.value);
+        window.location.replace("/cliente/inicio.html");
+      } catch (erro) {
+        console.error("Falha no acesso do cliente:", erro.code || erro);
+        msgErro.textContent = "Código ou senha incorretos. Confira os dados e tente novamente.";
+        msgErro.classList.remove("escondido");
+        btn.disabled = false;
+        btn.textContent = "Entrar";
+      }
+    });
+  </script>
+</body>
+</html>
