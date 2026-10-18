@@ -46,14 +46,17 @@ export async function publicarCardapioAtomico({
       }
     }
 
-    // Inclui os vigentes encontrados antes da transação para limpar dados antigos
-    // ou inconsistências. Em uma repetição por concorrência, também encerra o
-    // ponteiro recém-publicado pela outra transação.
-    for (const item of vigentesLegados.docs) {
-      if (idsLidos.has(item.id)) continue;
-      const atualSnap = await tx.get(item.ref);
-      if (atualSnap.exists() && atualSnap.data().status === "vigente") {
-        antigosParaEncerrar.push(item.ref);
+    // Usa a consulta legada apenas quando ainda não existe ponteiro canônico.
+    // Em publicações concorrentes, a transação que perde a disputa relê o cliente
+    // e encerra o cardápio apontado pelo vencedor, sem tentar atualizar resultados
+    // de uma consulta feita antes da transação.
+    if (!cliente.cardapioVigenteId) {
+      for (const item of vigentesLegados.docs) {
+        if (idsLidos.has(item.id)) continue;
+        const atualSnap = await tx.get(item.ref);
+        if (atualSnap.exists() && atualSnap.data().status === "vigente") {
+          antigosParaEncerrar.push(item.ref);
+        }
       }
     }
 
