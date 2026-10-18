@@ -32,12 +32,33 @@
     </section>
 
     <div id="conteudoCliente" class="escondido">
+      <nav class="navegacao-cliente" aria-label="Navegação da área do cliente">
+        <button type="button" class="item-navegacao ativo" data-tela="inicio"><span aria-hidden="true">⌂</span><small>Início</small></button>
+        <button type="button" class="item-navegacao" data-tela="cardapio"><span aria-hidden="true">♧</span><small>Cardápio</small></button>
+        <button type="button" class="item-navegacao" data-tela="checklist"><span aria-hidden="true">☑</span><small>Checklist</small></button>
+        <button type="button" class="item-navegacao" data-tela="progresso"><span aria-hidden="true">↗</span><small>Progresso</small></button>
+        <button type="button" class="item-navegacao" data-tela="perfil"><span aria-hidden="true">○</span><small>Perfil</small></button>
+      </nav>
+      <section id="viewInicio" class="cliente-view">
+        <div class="painel-inicio"><p class="sobretitulo">SEU ACOMPANHAMENTO</p><h2>Vamos cuidar da sua rotina?</h2><p>Veja seu plano, acompanhe seus hábitos e registre sua evolução em um só lugar.</p></div>
+        <div class="resumo-inicio">
+          <button type="button" class="atalho-cliente" data-tela="cardapio"><span class="atalho-icone">♧</span><strong>Meu cardápio</strong><small id="resumoCardapio">Consulte seu plano alimentar</small><span class="atalho-link">Abrir →</span></button>
+          <button type="button" class="atalho-cliente" data-tela="checklist"><span class="atalho-icone">☑</span><strong>Checklist de hoje</strong><small id="resumoChecklist">Acompanhe sua rotina</small><span class="atalho-link">Registrar →</span></button>
+          <button type="button" class="atalho-cliente" data-tela="progresso"><span class="atalho-icone">↗</span><strong>Meu progresso</strong><small id="resumoPeso">Seus registros aparecerão aqui</small><span class="atalho-link">Ver evolução →</span></button>
+          <button type="button" class="atalho-cliente" data-tela="perfil"><span class="atalho-icone">○</span><strong>Meu perfil</strong><small>Seus dados e acompanhamento</small><span class="atalho-link">Consultar →</span></button>
+        </div>
+        <section class="card card-status-anamnese"><h2>Anamnese inicial</h2><p id="resumoAnamnese">Verificando situação da sua anamnese...</p><button type="button" id="btnAbrirAnamnese" class="btn">Abrir anamnese</button></section>
+      </section>
+      <section id="viewCardapio" class="cliente-view escondido">
       <section class="card">
         <h2>Meu cardápio</h2>
         <p id="statusCardapio" class="cartao-vazio">Carregando seu cardápio...</p>
         <div id="cardapio"></div>
       </section>
 
+      </section>
+
+      <section id="viewAnamnese" class="cliente-view escondido">
       <section class="card" id="secaoAnamnese">
         <h2>Conhecendo você</h2>
         <p class="texto-suave">Estas informações ajudam sua nutricionista a compreender melhor seus objetivos e seu histórico.</p>
@@ -58,6 +79,9 @@
         </form>
       </section>
 
+      </section>
+
+      <section id="viewChecklist" class="cliente-view escondido">
       <section class="card" id="secaoCheckin">
         <h2>Meu acompanhamento diário</h2>
         <p id="statusCheckin" class="cartao-vazio"></p>
@@ -83,7 +107,18 @@
           <p id="msgCheckin" class="erro escondido" role="alert"></p>
         </form>
       </section>
-      <p class="texto-suave">Seu acompanhamento digital não substitui orientações profissionais ou atendimento de urgência.</p>
+      </section>
+      <section id="viewProgresso" class="cliente-view escondido"><section class="card">
+        <h2>Meu progresso</h2><p class="texto-suave">Acompanhe os registros feitos durante sua rotina. O peso é opcional e deve ser registrado conforme a orientação da sua nutricionista.</p>
+        <div class="indicadores-progresso"><div class="indicador-progresso"><span>Último peso registrado</span><strong id="progressoPesoAtual">—</strong><small id="progressoDataPeso">Sem registro</small></div><div class="indicador-progresso"><span>Checklist de hoje</span><strong id="progressoChecklistHoje">—</strong><small id="progressoDataHoje">—</small></div></div>
+        <h3>Histórico de peso</h3><div id="historicoPeso"><p class="cartao-vazio">Seus registros aparecerão aqui.</p></div>
+      </section></section>
+      <section id="viewPerfil" class="cliente-view escondido"><section class="card">
+        <h2>Meu perfil</h2><div class="perfil-identificacao"><span class="perfil-avatar" id="avatarCliente">C</span><div><strong id="perfilNome">Cliente</strong><p id="perfilObjetivo">Acompanhamento nutricional</p></div></div>
+        <dl class="perfil-dados"><div><dt>Data de nascimento</dt><dd id="perfilNascimento">Não informada</dd></div><div><dt>Contato</dt><dd id="perfilContato">Não informado</dd></div><div><dt>Status do acompanhamento</dt><dd id="perfilStatus">Ativo</dd></div><div><dt>Anamnese</dt><dd id="perfilAnamnese">Não preenchida</dd></div></dl>
+        <button type="button" class="btn btn-secundario" data-tela="anamnese">Consultar anamnese</button><button type="button" id="btnSairPerfil" class="btn btn-secundario">Sair da conta</button>
+      </section></section>
+      <p class="texto-suave aviso-rodape-cliente">Seu acompanhamento digital não substitui orientações profissionais ou atendimento de urgência.</p>
     </div>
   </main>
 
@@ -224,6 +259,7 @@
               if(arr.length)respostasAnamnese[q.id]=arr;else delete respostasAnamnese[q.id];
             }else respostasAnamnese[q.id]=op;
             renderizarAnamnese();
+        atualizarResumoAnamnese(statusAnamneseAtual);
           });
           const span=document.createElement("span");span.textContent=op;label.append(input,span);opts.appendChild(label);
         });
@@ -259,7 +295,7 @@
     $("formAnamnese").addEventListener("submit",async ev=>{
       ev.preventDefault();esconderErro("msgAnamnese");if(anamneseRevisada)return;
       const b=$("btnSalvarAnamnese");b.disabled=true;$("anamneseSalvamento").textContent="Enviando suas respostas...";
-      try{await persistirAnamnese("enviada");$("msgAnamnese").textContent="Anamnese enviada para sua nutricionista. Você voltou ao início da sua área."; $("msgAnamnese").classList.remove("escondido"); $("msgAnamnese").classList.add("mensagem-sucesso"); $("statusAnamnese").textContent="Anamnese enviada. Você poderá editar enquanto ela não for revisada."; $("anamneseSalvamento").textContent="Respostas enviadas com sucesso."; window.scrollTo({top:0,behavior:"smooth"});}
+      try{await persistirAnamnese("enviada");$("msgAnamnese").textContent="Anamnese enviada para sua nutricionista."; $("msgAnamnese").classList.remove("escondido"); $("msgAnamnese").classList.add("mensagem-sucesso"); $("statusAnamnese").textContent="Anamnese enviada. Você poderá editar enquanto ela não for revisada."; $("anamneseSalvamento").textContent="Respostas enviadas com sucesso."; atualizarResumoAnamnese("enviada"); navegarPara("inicio");}
       catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível enviar as respostas. Verifique sua conexão e tente novamente.");}
       finally{b.disabled=false;}
     });
@@ -318,6 +354,7 @@
         $("msgCheckin").textContent = "Check-in de hoje salvo.";
         $("msgCheckin").classList.remove("escondido");
         $("msgCheckin").classList.add("mensagem-sucesso");
+        await carregarProgressoCliente();
       } catch (erro) {
         console.error(erro);
         mostrarErro("msgCheckin", "Não foi possível salvar o check-in. Tente novamente.");
@@ -326,6 +363,45 @@
       }
     });
 
+    function navegarPara(tela) {
+      const permitidas = ["inicio","cardapio","checklist","progresso","perfil","anamnese"];
+      if (!permitidas.includes(tela)) tela = "inicio";
+      const sufixo = tela.charAt(0).toUpperCase() + tela.slice(1);
+      document.querySelectorAll(".cliente-view").forEach(el => el.classList.add("escondido"));
+      const view = document.getElementById("view" + sufixo);
+      if (view) view.classList.remove("escondido");
+      document.querySelectorAll(".item-navegacao").forEach(btn => {
+        const ativo = btn.dataset.tela === tela;
+        btn.classList.toggle("ativo", ativo);
+        if (ativo) btn.setAttribute("aria-current","page"); else btn.removeAttribute("aria-current");
+      });
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+    document.querySelectorAll("[data-tela]").forEach(btn => btn.addEventListener("click", () => navegarPara(btn.dataset.tela)));
+    $("btnAbrirAnamnese").addEventListener("click", () => navegarPara("anamnese"));
+    $("btnSairPerfil").addEventListener("click", async () => { await logout(); window.location.replace("/cliente/login.html"); });
+    function atualizarResumoAnamnese(status) {
+      const textos = {nova:"Sua anamnese ainda não foi preenchida.",rascunho:"Você tem uma anamnese em andamento. Continue de onde parou.",enviada:"Anamnese enviada — aguardando revisão da nutricionista.",revisada:"Sua nutricionista já revisou sua anamnese."};
+      $("resumoAnamnese").textContent = textos[status] || textos.nova;
+      $("btnAbrirAnamnese").textContent = status === "revisada" ? "Consultar anamnese" : status === "enviada" ? "Consultar respostas" : status === "rascunho" ? "Continuar anamnese" : "Preencher anamnese";
+      $("perfilAnamnese").textContent = textos[status] || textos.nova;
+    }
+    async function carregarProgressoCliente() {
+      try {
+        const snap = await getDocs(collection(db,"clientes",cliente.id,"checkins"));
+        const registros = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.id.localeCompare(a.id)).slice(0,30);
+        const comPeso = registros.filter(r=>typeof r.peso==="number"&&Number.isFinite(r.peso)&&r.peso>0);
+        const ultimo = comPeso[0];
+        $("progressoPesoAtual").textContent = ultimo ? ultimo.peso.toLocaleString("pt-BR")+" kg" : "Sem registro";
+        $("progressoDataPeso").textContent = ultimo ? new Date(ultimo.id+"T12:00:00").toLocaleDateString("pt-BR") : "Registre seu peso no checklist";
+        $("resumoPeso").textContent = ultimo ? "Último registro: "+ultimo.peso.toLocaleString("pt-BR")+" kg" : "Ainda sem peso registrado";
+        const hoje = dataLocalISO(), atual = registros.find(r=>r.id===hoje), refeicoes = atual?.refeicoes||[], feitas = refeicoes.filter(r=>r.feita).length;
+        $("progressoChecklistHoje").textContent = refeicoes.length ? feitas+" de "+refeicoes.length : "Sem checklist";
+        $("progressoDataHoje").textContent = "Atualizado em "+new Date().toLocaleDateString("pt-BR");
+        $("resumoChecklist").textContent = refeicoes.length ? feitas+" de "+refeicoes.length+" refeições concluídas" : "Checklist de hoje";
+        $("historicoPeso").innerHTML = comPeso.length ? '<ul class="historico-peso-lista">'+comPeso.map(r=>'<li><span>'+escapeHTML(new Date(r.id+"T12:00:00").toLocaleDateString("pt-BR"))+'</span><strong>'+escapeHTML(r.peso.toLocaleString("pt-BR"))+' kg</strong></li>').join("")+'</ul>' : '<p class="cartao-vazio">Nenhum peso registrado ainda. Se esse acompanhamento estiver ativado, você pode informar seu peso no checklist diário.</p>';
+      } catch(e) { console.error("Falha ao carregar progresso:",e); $("historicoPeso").textContent="Não foi possível carregar o histórico agora."; }
+    }
     let etapaCarregamento = "inicialização";
 
     observarLogin(async (user) => {
@@ -350,6 +426,7 @@
         cliente = { id: snap.docs[0].id, ...snap.docs[0].data() };
         $("nomeCliente").textContent = `Olá, ${cliente.nome || "bem-vindo(a)"}!`;
         $("objetivoCliente").textContent = cliente.objetivo || "Aqui você acompanha seu plano e sua rotina.";
+        $("perfilNome").textContent=cliente.nome||"Cliente"; $("avatarCliente").textContent=(cliente.nome||"C").trim().charAt(0).toUpperCase(); $("perfilObjetivo").textContent=cliente.objetivo||"Acompanhamento nutricional"; $("perfilNascimento").textContent=cliente.dataNascimento?new Date(cliente.dataNascimento).toLocaleDateString("pt-BR"):"Não informada"; $("perfilContato").textContent=typeof cliente.contato==="string"?cliente.contato:(cliente.contato?.telefone||cliente.contato?.email||"Não informado"); $("perfilStatus").textContent=cliente.statusAcompanhamento==="suspenso"?"Suspenso":"Ativo";
         etapaCarregamento = "consultar consentimento";
         const consentimento = await obterConsentimento(cliente.id);
         consentimentoAceito = Boolean(consentimento && consentimento.revogadoEm == null);
@@ -373,7 +450,7 @@
 
     async function carregarConteudo() {
       await carregarCardapio();
-      await Promise.all([carregarAnamnese(), carregarCheckin()]);
+      await Promise.all([carregarAnamnese(), carregarCheckin(), carregarProgressoCliente()]);
     }
 
     async function carregarCardapio() {
@@ -382,6 +459,7 @@
         const div = $("cardapio");
         if (!cardapioAtual) {
           $("statusCardapio").textContent = "Sua nutricionista ainda não publicou um cardápio vigente.";
+          $("resumoCardapio").textContent = "Aguardando publicação da nutricionista";
           div.innerHTML = "";
           return;
         }
@@ -391,6 +469,7 @@
           return Number.isNaN(data.getTime()) ? "—" : data.toLocaleDateString("pt-BR");
         };
         $("statusCardapio").textContent = `Válido de ${formatarData(cardapioAtual.dataInicio)} até ${formatarData(cardapioAtual.dataFim)}.`;
+        $("resumoCardapio").textContent = "Plano vigente até " + formatarData(cardapioAtual.dataFim);
         const metas = cardapioAtual.metas || {};
         const metasHTML = [
           metas.kcal != null ? `<span>${escapeHTML(metas.kcal)} kcal</span>` : "",
