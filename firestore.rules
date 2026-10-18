@@ -1,19 +1,10 @@
 rules_version = '2';
 
-// ============================================================
-// COMO PUBLICAR ESTE ARQUIVO:
-// 1. Copie todo o conteúdo abaixo (a partir de "service cloud.firestore").
-// 2. Console do Firebase > Firestore Database > aba "Regras".
-// 3. Cole substituindo o conteúdo atual > clique em "Publicar".
-//
-// ANTES DE PUBLICAR: troque "COLE_AQUI_O_UID_DA_IRMA" pelo UID real dela
-// (o mesmo UID que vai em shared/firebase-config.js, em UID_NUTRICIONISTA).
-// ============================================================
+// AppNutri — regras de segurança do Firestore.
+// Não publicar estas regras sem executar os testes do emulador primeiro.
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ---------- Funções auxiliares ----------
 
     function isNutri() {
       return request.auth != null
@@ -25,35 +16,41 @@ service cloud.firestore {
     }
 
     function isDono(id) {
-      return request.auth != null && cli(id).authUid == request.auth.uid && cli(id).ativo == true;
+      return request.auth != null
+        && cli(id).authUid == request.auth.uid
+        && cli(id).ativo == true;
     }
 
-    // Consentimento LGPD precisa existir e não ter sido revogado
     function consentOk(id) {
       let p = /databases/$(database)/documents/clientes/$(id)/consentimentos/v1;
       return exists(p) && get(p).data.revogadoEm == null;
     }
 
-    // ---------- Configuração única da nutricionista ----------
-
+    // Configuração privada da nutricionista.
     match /config/nutricionista {
       allow read, write: if isNutri();
     }
 
-    // Modelos de cardápio reaproveitáveis (biblioteca pessoal dela).
-    // Guardados como subcoleção "itens" dentro do doc config/modelosCardapio.
+    // Biblioteca privada de modelos de cardápio.
     match /config/modelosCardapio/itens/{modeloId} {
       allow read, write: if isNutri();
     }
 
-    // ---------- Cliente ----------
+    // Catálogo de alimentos e receitas: acesso exclusivo da nutricionista.
+    // Estas regras cobrem também eventuais subcoleções dessas coleções.
+    match /alimentos/{document=**} {
+      allow read, write: if isNutri();
+    }
+
+    match /receitas/{document=**} {
+      allow read, write: if isNutri();
+    }
 
     match /clientes/{id} {
-      // Leitura direta de um cadastro: nutricionista ou o próprio cliente ativo.
+      // Cadastro: nutricionista ou o próprio cliente ativo.
       allow get: if isNutri() || isDono(id);
 
-      // Consultas à coleção precisam restringir os resultados ao UID autenticado.
-      // A consulta do cliente também filtra ativo == true.
+      // Consultas de coleção devem respeitar a identidade do cliente.
       allow list: if isNutri()
         || (request.auth != null
             && resource.data.authUid == request.auth.uid
@@ -61,26 +58,23 @@ service cloud.firestore {
 
       allow create, delete: if isNutri();
 
-      // Nutricionista edita tudo. Cliente só edita campos não clínicos,
-      // e só depois de ter aceitado o consentimento.
+      // Cliente só altera dados de perfil explicitamente permitidos.
+      // A nutricionista pode administrar o cadastro e o ponteiro do cardápio vigente.
       allow update: if isNutri()
         || (isDono(id) && consentOk(id)
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['nome', 'dataNascimento', 'contato',
                            'acompanhaDiario', 'primeiroAcessoConcluido']));
 
-      // Anamnese preenchida pelo próprio cliente no primeiro acesso
-      match /anamneseInicial/{doc} {
+      match /anamneseInicial/{docId} {
         allow read: if isNutri() || isDono(id);
 
         allow create: if isDono(id) && consentOk(id)
           && request.resource.data.status in ['rascunho', 'enviada'];
 
         allow update: if
-          // nutricionista só pode mudar o status (ex: marcar como revisada)
           (isNutri() && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['status', 'revisadaEm']))
-          // cliente só pode editar enquanto ainda não foi revisada
           || (isDono(id) && consentOk(id)
               && resource.data.status != 'revisada'
               && request.resource.data.status in ['rascunho', 'enviada']);
@@ -88,44 +82,64 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // Observações profissionais: somente a conta da nutricionista pode acessar.
-      // O cliente não pode ler, criar, alterar ou excluir estas anotações.
+      // Anotações profissionais: exclusivas da nutricionista.
       match /observacoesNutri/{observacaoId} {
         allow read, write: if isNutri();
       }
 
-      // Sessões (consultas): só a nutricionista lê e escreve —
-      // contém anamnese clínica e o diagnóstico PES.
+      // Sessões clínicas: exclusivas da nutricionista.
       match /sessoes/{sessaoId} {
         allow read, write: if isNutri();
       }
 
-      // Cardápios: nutricionista escreve, cliente só lê o(s) seu(s)
+      // Cardápios:
+      // - cliente lê somente versões publicadas (vigentes ou encerradas);
+      // - rascunhos ficam privados;
+      // - rascunhos podem ser editados pela nutricionista;
+      // - uma versão publicada só pode mudar de vigente para encerrado;
+      // - versões publicadas não podem ser apagadas.
       match /cardapios/{cardapioId} {
-        allow read: if isNutri() || isDono(id);
-        allow write: if isNutri();
+        allow read: if isNutri()
+          || (isDono(id)
+              && resource.data.status in ['vigente', 'encerrado']);
+
+        allow create: if isNutri()
+          && request.resource.data.status in ['rascunho', 'vigente'];
+
+        allow update: if isNutri() && (
+          (resource.data.status == 'rascunho'
+            && request.resource.data.status in ['rascunho', 'vigente'])
+          ||
+          (resource.data.status == 'vigente'
+            && request.resource.data.status == 'encerrado'
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['status']))
+        );
+
+        allow delete: if isNutri()
+          && resource.data.status == 'rascunho';
       }
 
-      // Check-ins diários: só o próprio cliente grava,
-      // e só se tiver ativado o acompanhamento diário
+      // Check-ins: o próprio cliente ativo, com consentimento e recurso habilitado.
       match /checkins/{data} {
         allow read: if isNutri() || isDono(id);
         allow create, update: if isDono(id) && consentOk(id)
           && cli(id).acompanhaDiario == true;
-        allow delete: if false; // nunca apaga, só corrige com update
+        allow delete: if false;
       }
 
-      // Consentimento LGPD
+      // Consentimento: o cliente pode registrar e revogar, não apagar o histórico.
       match /consentimentos/{consentId} {
         allow read: if isNutri() || isDono(id);
-        allow create: if isDono(id) && request.resource.data.revogadoEm == null;
+        allow create: if isDono(id)
+          && request.resource.data.revogadoEm == null;
         allow update: if isDono(id)
           && request.resource.data.diff(resource.data)
                .affectedKeys().hasOnly(['revogadoEm']);
         allow delete: if false;
       }
 
-      // Trilha de auditoria
+      // Auditoria: imutável depois de criada.
       match /auditLog/{logId} {
         allow read: if isNutri();
         allow create: if isNutri() || isDono(id);
