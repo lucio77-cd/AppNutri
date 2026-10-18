@@ -35,19 +35,25 @@ export async function publicarCardapioAtomico({
     const cliente = clienteSnap.data();
     const antigosParaEncerrar = [];
 
+    const idsLidos = new Set();
+
     if (cliente.cardapioVigenteId) {
       const atualRef = doc(cardapiosRef, cliente.cardapioVigenteId);
       const atualSnap = await tx.get(atualRef);
+      idsLidos.add(atualRef.id);
       if (atualSnap.exists() && atualSnap.data().status === "vigente") {
         antigosParaEncerrar.push(atualRef);
       }
-    } else {
-      // Todos os documentos são lidos antes de qualquer escrita da transação.
-      for (const item of vigentesLegados.docs) {
-        const atualSnap = await tx.get(item.ref);
-        if (atualSnap.exists() && atualSnap.data().status === "vigente") {
-          antigosParaEncerrar.push(item.ref);
-        }
+    }
+
+    // Inclui os vigentes encontrados antes da transação para limpar dados antigos
+    // ou inconsistências. Em uma repetição por concorrência, também encerra o
+    // ponteiro recém-publicado pela outra transação.
+    for (const item of vigentesLegados.docs) {
+      if (idsLidos.has(item.id)) continue;
+      const atualSnap = await tx.get(item.ref);
+      if (atualSnap.exists() && atualSnap.data().status === "vigente") {
+        antigosParaEncerrar.push(item.ref);
       }
     }
 
