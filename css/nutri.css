@@ -74,3 +74,126 @@
   margin: 8px 0;
   letter-spacing: 1px;
 }
+
+
+/* Ações da lista de clientes: compactas, consistentes e adaptadas ao celular */
+.cliente-linha {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px 0;
+  cursor: default;
+}
+
+.cliente-info {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.cliente-nome {
+  font-size: 16px;
+  line-height: 1.35;
+  margin-bottom: 3px;
+}
+
+.cliente-objetivo {
+  line-height: 1.4;
+}
+
+.cliente-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.status-ativo {
+  color: #216e39;
+  background: #e8f5ec;
+}
+
+.status-suspenso {
+  color: #8a5800;
+  background: #fff2d6;
+}
+
+.status-excluido {
+  color: #626262;
+  background: #eeeeee;
+}
+
+.cliente-acoes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+}
+
+.cliente-acoes .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 5px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+
+.cliente-acoes .btn-acesso {
+  color: #245b45;
+  background: #edf5f0;
+  border-color: #d7e8dc;
+}
+
+.cliente-acoes .btn-suspender {
+  color: #805600;
+  background: #fff5df;
+  border-color: #f0dfb4;
+}
+
+.cliente-acoes .btn-retomar {
+  color: #216e39;
+  background: #e8f5ec;
+  border-color: #cfe7d6;
+}
+
+.cliente-acoes .btn-arquivar {
+  color: #a12c2c;
+  background: #fff0f0;
+  border-color: #f1d2d2;
+}
+
+.cliente-acoes .btn:active {
+  filter: brightness(0.96);
+}
+
+.cliente-acoes .btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+@media (max-width: 360px) {
+  .cliente-acoes {
+    gap: 5px;
+  }
+
+  .cliente-acoes .btn {
+    font-size: 11px;
+    padding-inline: 3px;
+  }
+}

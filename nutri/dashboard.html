@@ -102,23 +102,23 @@
           const status = c.statusAcompanhamento || (c.ativo === false ? "suspenso" : "ativo");
           const statusTexto = status === "excluido" ? "Arquivado" : status === "suspenso" ? "Acompanhamento suspenso" : "Em acompanhamento";
           const acoes = status === "ativo"
-            ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${c.id}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
-               <button type="button" class="btn btn-secundario" data-acao="suspender" data-id="${c.id}" style="width:auto;padding:7px 10px;">Suspender</button>
-               <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Excluir</button>`
+            ? `<button type="button" class="btn btn-acao btn-acesso" data-acao="acesso" data-id="${c.id}">ID / login</button>
+               <button type="button" class="btn btn-acao btn-suspender" data-acao="suspender" data-id="${c.id}">Suspender</button>
+               <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${c.id}">Arquivar</button>`
             : status === "suspenso"
               ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${c.id}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
-                 <button type="button" class="btn" data-acao="reativar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Retomar</button>
-                 <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Arquivar</button>`
+                 <button type="button" class="btn btn-acao btn-retomar" data-acao="reativar" data-id="${c.id}">Retomar</button>
+                 <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${c.id}">Arquivar</button>`
               : "";
           return `
             <div class="cliente-linha">
-              <div style="flex:1;min-width:0;cursor:pointer" data-abrir="${c.id}">
+              <div class="cliente-info" data-abrir="${c.id}">
                 <div class="cliente-nome">${escaparHtml(c.nome || "Sem nome")}</div>
                 <div class="cliente-objetivo">${escaparHtml(c.objetivo || "Sem objetivo definido")}</div>
-                <div style="font-size:12px;margin-top:4px;">${statusTexto}</div>
+                <div class="cliente-status status-${status}">${statusTexto}</div>
                 <div id="badges-${c.id}">${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}</div>
               </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;margin-top:8px;">${acoes}</div>
+              <div class="cliente-acoes">${acoes}</div>
             </div>
           `;
         }).join("");
