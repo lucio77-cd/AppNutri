@@ -213,12 +213,15 @@
       }
     });
 
+    let etapaCarregamento = "inicialização";
+
     observarLogin(async (user) => {
       if (!user) {
         window.location.replace("/cliente/login.html");
         return;
       }
       try {
+        etapaCarregamento = "buscar cadastro do cliente";
         const q = query(collection(db, "clientes"), where("authUid", "==", user.uid), limit(1));
         const snap = await getDocs(q);
         if (snap.empty) {
@@ -229,6 +232,7 @@
         cliente = { id: snap.docs[0].id, ...snap.docs[0].data() };
         $("nomeCliente").textContent = `Olá, ${cliente.nome || "bem-vindo(a)"}!`;
         $("objetivoCliente").textContent = cliente.objetivo || "Aqui você acompanha seu plano e sua rotina.";
+        etapaCarregamento = "consultar consentimento";
         const consentimento = await obterConsentimento(cliente.id);
         consentimentoAceito = Boolean(consentimento && consentimento.revogadoEm == null);
         if (!consentimentoAceito) {
@@ -237,13 +241,14 @@
           return;
         }
         $("conteudoCliente").classList.remove("escondido");
+        etapaCarregamento = "carregar cardápio, anamnese e check-in";
         await carregarConteudo();
       } catch (erro) {
-        console.error("ERRO AO CARREGAR ÁREA DO CLIENTE:", erro);
+        console.error("ERRO AO CARREGAR ÁREA DO CLIENTE:", { etapa: etapaCarregamento, erro });
         const codigoErro = erro?.code || erro?.message || "erro desconhecido";
         mostrarErro(
           "msgGeral",
-          `Falha ao carregar sua área (${codigoErro}). Tente novamente; se persistir, avise sua nutricionista.`
+          `Falha ao carregar sua área na etapa "${etapaCarregamento}" (${codigoErro}). Tente novamente; se persistir, avise sua nutricionista.`
         );
       }
     });
