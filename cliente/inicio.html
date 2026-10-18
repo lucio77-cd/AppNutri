@@ -248,17 +248,18 @@
     async function persistirAnamnese(status, etapaSalva = etapaAnamneseAtual){
       await salvarAnamneseInicial(cliente.id,{versaoFormulario:2,respostasEstruturadas:montarRespostasEstruturadas(),etapaAtual:etapaSalva,atualizadoEm:new Date()},status);
     }
-    $("btnAnamneseVoltar").addEventListener("click",()=>{if(etapaAnamneseAtual>0){etapaAnamneseAtual--;renderizarAnamnese();}});
+    function rolarParaInicioAnamnese(){ $("secaoAnamnese").scrollIntoView({behavior:"smooth",block:"start"}); }
+    $("btnAnamneseVoltar").addEventListener("click",()=>{if(etapaAnamneseAtual>0){etapaAnamneseAtual--;renderizarAnamnese();rolarParaInicioAnamnese();}});
     $("btnAnamneseAvancar").addEventListener("click",async()=>{
       esconderErro("msgAnamnese");const b=$("btnAnamneseAvancar");b.disabled=true;$("anamneseSalvamento").textContent="Salvando seu progresso...";
-      try{const proximaEtapa=Math.min(etapasAnamnese.length-1,etapaAnamneseAtual+1);await persistirAnamnese("rascunho",proximaEtapa);etapaAnamneseAtual=proximaEtapa;renderizarAnamnese();$("anamneseSalvamento").textContent="Progresso salvo. Você pode continuar depois.";}
+      try{const proximaEtapa=Math.min(etapasAnamnese.length-1,etapaAnamneseAtual+1);await persistirAnamnese("rascunho",proximaEtapa);etapaAnamneseAtual=proximaEtapa;renderizarAnamnese();$("anamneseSalvamento").textContent="Progresso salvo. Você pode continuar depois.";rolarParaInicioAnamnese();}
       catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível salvar seu progresso. Verifique sua conexão e tente novamente.");}
       finally{b.disabled=false;}
     });
     $("formAnamnese").addEventListener("submit",async ev=>{
       ev.preventDefault();esconderErro("msgAnamnese");if(anamneseRevisada)return;
       const b=$("btnSalvarAnamnese");b.disabled=true;$("anamneseSalvamento").textContent="Enviando suas respostas...";
-      try{await persistirAnamnese("enviada");$("msgAnamnese").textContent="Anamnese enviada para sua nutricionista.";$("msgAnamnese").classList.remove("escondido");$("msgAnamnese").classList.add("mensagem-sucesso");$("statusAnamnese").textContent="Anamnese enviada. Você poderá editar enquanto ela não for revisada.";$("anamneseSalvamento").textContent="Respostas enviadas com sucesso.";}
+      try{await persistirAnamnese("enviada");$("msgAnamnese").textContent="Anamnese enviada para sua nutricionista. Você voltou ao início da sua área."; $("msgAnamnese").classList.remove("escondido"); $("msgAnamnese").classList.add("mensagem-sucesso"); $("statusAnamnese").textContent="Anamnese enviada. Você poderá editar enquanto ela não for revisada."; $("anamneseSalvamento").textContent="Respostas enviadas com sucesso."; window.scrollTo({top:0,behavior:"smooth"});}
       catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível enviar as respostas. Verifique sua conexão e tente novamente.");}
       finally{b.disabled=false;}
     });
@@ -286,31 +287,6 @@
       } catch (erro) {
         console.error(erro);
         mostrarErro("msgConsentimento", "Não foi possível registrar o consentimento. Tente novamente ou fale com sua nutricionista.");
-      } finally {
-        botao.disabled = false;
-      }
-    });
-
-    $("formAnamnese").addEventListener("submit", async (evento) => {
-      evento.preventDefault();
-      esconderErro("msgAnamnese");
-      if (anamneseRevisada) return;
-      const botao = $("btnSalvarAnamnese");
-      botao.disabled = true;
-      try {
-        await salvarAnamneseInicial(cliente.id, {
-          textoLivre: {
-            historicoSaude: $("historicoSaude").value.trim(),
-            objetivoDetalhado: $("objetivoDetalhado").value.trim(),
-          },
-        });
-        $("msgAnamnese").textContent = "Informações enviadas para sua nutricionista.";
-        $("msgAnamnese").classList.remove("escondido");
-        $("msgAnamnese").classList.add("mensagem-sucesso");
-        $("statusAnamnese").textContent = "Anamnese enviada. Você poderá editar enquanto ela não for revisada.";
-      } catch (erro) {
-        console.error(erro);
-        mostrarErro("msgAnamnese", "Não foi possível salvar as informações. Verifique sua conexão e tente novamente.");
       } finally {
         botao.disabled = false;
       }
