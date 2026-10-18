@@ -100,9 +100,12 @@ export async function atualizarCliente(clienteId, campos) {
 // ============================================================
 
 // Cliente salva/atualiza a própria anamnese, no primeiro acesso.
-export async function salvarAnamneseInicial(clienteId, dados) {
+export async function salvarAnamneseInicial(clienteId, dados, status = "enviada") {
+  if (!["rascunho", "enviada"].includes(status)) {
+    throw new Error("Status de anamnese inválido.");
+  }
   const ref = doc(db, "clientes", clienteId, "anamneseInicial", "inicial");
-  await setDoc(ref, { ...dados, status: "enviada" }, { merge: true });
+  await setDoc(ref, { ...dados, status }, { merge: true });
 }
 
 // Nutricionista busca a anamnese para revisar antes/durante a consulta.
