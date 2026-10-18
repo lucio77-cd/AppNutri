@@ -46,6 +46,38 @@
       <div id="anamnese">—</div>
     </div>
 
+    <div class="secao" id="secaoObservacoes">
+      <h2>📝 Caderno profissional</h2>
+      <p class="texto-suave">Anotações privadas da nutricionista. Não são exibidas ao cliente.</p>
+      <div class="card observacao-form-card">
+        <form id="formObservacao">
+          <div class="campo">
+            <label for="obsTipo">Tipo de registro</label>
+            <select id="obsTipo" required>
+              <option value="observacao">Observação / pensamento</option>
+              <option value="pergunta">Conversar na próxima consulta</option>
+              <option value="acompanhar">Acompanhar / combinado</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="obsAssunto">Assunto (opcional)</label>
+            <input id="obsAssunto" type="text" maxlength="120" placeholder="Ex.: rotina de trabalho">
+          </div>
+          <div class="campo">
+            <label for="obsTexto">Anotação</label>
+            <textarea id="obsTexto" rows="4" maxlength="5000" required placeholder="O que chamou sua atenção? O que precisa investigar ou retomar?"></textarea>
+          </div>
+          <button type="submit" class="btn">Salvar observação privada</button>
+          <p id="msgObservacao" class="erro escondido" role="status"></p>
+        </form>
+      </div>
+      <div class="observacoes-cabecalho">
+        <h3>Registros deste cliente</h3>
+        <span id="contadorObservacoes" class="tag-contagem">0 registros</span>
+      </div>
+      <div id="listaObservacoes" class="lista-observacoes"><p>Carregando observações...</p></div>
+    </div>
+
     <div class="secao">
       <h2>Nova sessão (consulta)</h2>
       <div class="card">
@@ -171,6 +203,7 @@
       obterCliente, atualizarCliente, obterAnamneseInicial, marcarAnamneseRevisada,
       criarSessao, criarCardapio, obterCardapioVigente, listarCardapios,
       listarModelosCardapio, salvarModeloCardapio, listarUltimosCheckins,
+      criarObservacaoNutri, listarObservacoesNutri, atualizarStatusObservacaoNutri,
     } from "/shared/db.js";
     import { obterAlertasCliente, calcularAdesao } from "/shared/cardapio.js";
 
@@ -200,6 +233,7 @@
       await carregarCabecalho();
       await carregarAlertas();
       await carregarAnamnese();
+      await carregarObservacoes();
       await carregarCardapioVigente();
       await carregarHistoricoCardapios();
       await carregarProgresso();
