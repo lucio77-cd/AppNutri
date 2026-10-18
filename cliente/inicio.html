@@ -239,8 +239,12 @@
         $("conteudoCliente").classList.remove("escondido");
         await carregarConteudo();
       } catch (erro) {
-        console.error(erro);
-        mostrarErro("msgGeral", "Não foi possível carregar sua área. Confira a conexão e tente novamente.");
+        console.error("ERRO AO CARREGAR ÁREA DO CLIENTE:", erro);
+        const codigoErro = erro?.code || erro?.message || "erro desconhecido";
+        mostrarErro(
+          "msgGeral",
+          `Falha ao carregar sua área (\u0024{codigoErro}). Tente novamente; se persistir, avise sua nutricionista.`
+        );
       }
     });
 
