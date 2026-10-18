@@ -1,0 +1,26 @@
+name: Testes de publicação de cardápios
+
+on:
+  push:
+    branches:
+      - fix/publicacao-cardapio-atomica
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  emulator-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependências
+        run: npm install
+      - name: Executar testes no Firebase Emulator
+        run: npm run test:cardapios
