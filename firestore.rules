@@ -58,13 +58,35 @@ service cloud.firestore {
 
       allow create, delete: if isNutri();
 
-      // Cliente só altera dados de perfil explicitamente permitidos.
-      // A nutricionista pode administrar o cadastro e o ponteiro do cardápio vigente.
-      allow update: if isNutri()
-        || (isDono(id) && consentOk(id)
-            && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['nome', 'dataNascimento', 'contato',
-                           'acompanhaDiario', 'primeiroAcessoConcluido']));
+      // A nutricionista só pode alterar campos administrativos conhecidos.
+      // Campos clínicos e outros dados não podem ser sobrescritos por engano.
+      allow update: if (
+        isNutri()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'nome',
+          'dataNascimento',
+          'contato',
+          'objetivo',
+          'authUid',
+          'ativo',
+          'statusAcompanhamento',
+          'statusAtualizadoEm',
+          'arquivadoEm',
+          'cardapioVigenteId',
+          'acompanhaDiario',
+          'primeiroAcessoConcluido'
+        ])
+      ) || (
+        isDono(id)
+        && consentOk(id)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'nome',
+          'dataNascimento',
+          'contato',
+          'acompanhaDiario',
+          'primeiroAcessoConcluido'
+        ])
+      );
 
       match /anamneseInicial/{docId} {
         allow read: if isNutri() || isDono(id);
