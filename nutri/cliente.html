@@ -8,6 +8,14 @@
   <link rel="stylesheet" href="/css/nutri.css">
   <style>
     .secao { margin-bottom: 24px; }
+    .anamnese-grupo { border:1px solid var(--cor-borda); border-radius:10px; padding:12px; margin:12px 0; }
+    .anamnese-grupo summary { cursor:pointer; font-weight:700; }
+    .anamnese-grupo summary span { font-size:12px; margin-left:6px; }
+    .anamnese-respostas { margin:10px 0 0; }
+    .anamnese-respostas > div { padding:10px 0; border-bottom:1px solid var(--cor-borda); }
+    .anamnese-respostas > div:last-child { border-bottom:0; }
+    .anamnese-respostas dt { font-weight:650; font-size:14px; }
+    .anamnese-respostas dd { margin:4px 0 0; font-size:14px; line-height:1.5; white-space:pre-wrap; }
     .secao h2 { font-size: 18px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 8px; }
     .refeicao-item { border: 1px solid var(--cor-borda); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
     .refeicao-item input { margin-bottom: 6px; }
@@ -225,6 +233,12 @@
       }
     }
 
+    function escaparTexto(valor) {
+      return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[c]);
+    }
+
     async function carregarAnamnese() {
       const anamnese = await obterAnamneseInicial(clienteId);
       const div = document.getElementById("anamnese");
@@ -232,19 +246,40 @@
         div.innerHTML = "<p>O cliente ainda não preencheu a anamnese.</p>";
         return;
       }
+      const respostas = anamnese.respostasEstruturadas || {};
+      const grupos = {};
+      Object.values(respostas).forEach(item => {
+        const cat = item.categoria || "Outras respostas";
+        if (!grupos[cat]) grupos[cat] = [];
+        grupos[cat].push(item);
+      });
+      const gruposHTML = Object.entries(grupos).map(([cat,itens]) => `
+        <details class="anamnese-grupo" open>
+          <summary>${escaparTexto(cat)} <span>${itens.length} respostas</span></summary>
+          <dl class="anamnese-respostas">${itens.map(item => {
+            const resp = Array.isArray(item.resposta) ? item.resposta.join(", ") : item.resposta;
+            return `<div><dt>${escaparTexto(item.pergunta)}</dt><dd>${escaparTexto(resp)}</dd></div>`;
+          }).join("")}</dl>
+        </details>`).join("");
+      const legado = anamnese.textoLivre ? `
+        <details class="anamnese-grupo">
+          <summary>Respostas anteriores (formato antigo)</summary>
+          <p><strong>Histórico de saúde:</strong> ${escaparTexto(anamnese.textoLivre.historicoSaude || "—")}</p>
+          <p><strong>Objetivo detalhado:</strong> ${escaparTexto(anamnese.textoLivre.objetivoDetalhado || "—")}</p>
+        </details>` : "";
       div.innerHTML = `
-        <p><strong>Status:</strong> <span class="tag-status">${anamnese.status}</span></p>
-        <p><strong>Histórico de saúde:</strong> ${anamnese.textoLivre?.historicoSaude || "—"}</p>
-        <p><strong>Objetivo detalhado:</strong> ${anamnese.textoLivre?.objetivoDetalhado || "—"}</p>
+        <p><strong>Status:</strong> <span class="tag-status">${escaparTexto(anamnese.status || "rascunho")}</span></p>
+        ${anamnese.versaoFormulario ? "<p>Formulário estruturado v" + escaparTexto(anamnese.versaoFormulario) + "</p>" : ""}
+        ${Object.keys(respostas).length ? gruposHTML : "<p>Ainda não há respostas estruturadas registradas.</p>"}
+        ${legado}
         ${anamnese.status !== "revisada" ? '<button class="btn btn-secundario small-btn" id="btnRevisarAnamnese">Marcar como revisada</button>' : ""}
       `;
       const btn = document.getElementById("btnRevisarAnamnese");
-      if (btn) {
-        btn.addEventListener("click", async () => {
-          await marcarAnamneseRevisada(clienteId);
-          carregarAnamnese();
-        });
-      }
+      if (btn) btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try { await marcarAnamneseRevisada(clienteId); await carregarAnamnese(); }
+        catch (e) { btn.disabled = false; console.error(e); alert("Não foi possível marcar a anamnese como revisada."); }
+      });
     }
 
     // ---------- Nova sessão ----------
