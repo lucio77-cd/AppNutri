@@ -282,6 +282,91 @@
       });
     }
 
+
+    // ---------- Caderno privado da nutricionista ----------
+    const tiposObservacao = {
+      observacao: "Observação profissional",
+      pergunta: "Conversar na próxima consulta",
+      acompanhar: "Acompanhar / combinado",
+    };
+
+    function formatarDataObservacao(valor) {
+      const data = valor?.toDate ? valor.toDate() : (valor ? new Date(valor) : null);
+      return data && !Number.isNaN(data.getTime())
+        ? data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+        : "Data não disponível";
+    }
+
+    async function carregarObservacoes() {
+      const lista = document.getElementById("listaObservacoes");
+      const contador = document.getElementById("contadorObservacoes");
+      lista.innerHTML = "<p>Carregando observações...</p>";
+      try {
+        const observacoes = await listarObservacoesNutri(clienteId);
+        const abertas = observacoes.filter((o) => o.status !== "concluida").length;
+        contador.textContent = `${observacoes.length} registro${observacoes.length === 1 ? "" : "s"} · ${abertas} em aberto`;
+        if (!observacoes.length) {
+          lista.innerHTML = '<div class="estado-vazio"><strong>Nenhuma anotação ainda</strong><p>Registre aqui pensamentos e pontos para conversar nas próximas consultas.</p></div>';
+          return;
+        }
+        lista.innerHTML = observacoes.map((o) => {
+          const concluida = o.status === "concluida";
+          const tipo = tiposObservacao[o.tipo] || "Observação profissional";
+          return `<article class="observacao-item ${concluida ? "observacao-concluida" : ""}">
+            <div class="observacao-item-topo">
+              <span class="observacao-tipo tipo-${escaparTexto(o.tipo || "observacao")}">${escaparTexto(tipo)}</span>
+              <span class="observacao-data">${escaparTexto(formatarDataObservacao(o.criadoEm))}</span>
+            </div>
+            ${o.assunto ? `<h4>${escaparTexto(o.assunto)}</h4>` : ""}
+            <p class="observacao-texto">${escaparTexto(o.texto)}</p>
+            <div class="observacao-item-acoes">
+              <span class="observacao-status">${concluida ? "Concluída" : "Em aberto"}</span>
+              <button type="button" class="btn btn-secundario small-btn btn-status-observacao" data-id="${escaparTexto(o.id)}" data-status="${concluida ? "aberta" : "concluida"}">${concluida ? "Reabrir" : "Marcar como concluída"}</button>
+            </div>
+          </article>`;
+        }).join("");
+        lista.querySelectorAll(".btn-status-observacao").forEach((botao) => {
+          botao.addEventListener("click", async () => {
+            botao.disabled = true;
+            try {
+              await atualizarStatusObservacaoNutri(clienteId, botao.dataset.id, botao.dataset.status);
+              await carregarObservacoes();
+            } catch (err) {
+              console.error(err);
+              alert("Não foi possível atualizar esta observação.");
+              botao.disabled = false;
+            }
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        lista.innerHTML = '<p class="erro">Não foi possível carregar as observações. Verifique se as regras do Firestore foram publicadas.</p>';
+      }
+    }
+
+    document.getElementById("formObservacao").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msgObservacao");
+      const botao = e.currentTarget.querySelector('button[type="submit"]');
+      msg.classList.add("escondido");
+      botao.disabled = true;
+      try {
+        await criarObservacaoNutri(clienteId, {
+          tipo: document.getElementById("obsTipo").value,
+          assunto: document.getElementById("obsAssunto").value.trim(),
+          texto: document.getElementById("obsTexto").value.trim(),
+        });
+        document.getElementById("formObservacao").reset();
+        await carregarObservacoes();
+      } catch (err) {
+        console.error(err);
+        msg.textContent = "Não foi possível salvar. Confirme se as regras do Firestore foram publicadas.";
+        msg.classList.remove("escondido");
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
     // ---------- Nova sessão ----------
     document.getElementById("formSessao").addEventListener("submit", async (e) => {
       e.preventDefault();
