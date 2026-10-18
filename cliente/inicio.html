@@ -245,13 +245,13 @@
       }));
       return out;
     }
-    async function persistirAnamnese(status){
-      await salvarAnamneseInicial(cliente.id,{versaoFormulario:2,respostasEstruturadas:montarRespostasEstruturadas(),atualizadoEm:new Date()},status);
+    async function persistirAnamnese(status, etapaSalva = etapaAnamneseAtual){
+      await salvarAnamneseInicial(cliente.id,{versaoFormulario:2,respostasEstruturadas:montarRespostasEstruturadas(),etapaAtual:etapaSalva,atualizadoEm:new Date()},status);
     }
     $("btnAnamneseVoltar").addEventListener("click",()=>{if(etapaAnamneseAtual>0){etapaAnamneseAtual--;renderizarAnamnese();}});
     $("btnAnamneseAvancar").addEventListener("click",async()=>{
       esconderErro("msgAnamnese");const b=$("btnAnamneseAvancar");b.disabled=true;$("anamneseSalvamento").textContent="Salvando seu progresso...";
-      try{await persistirAnamnese("rascunho");etapaAnamneseAtual=Math.min(etapasAnamnese.length-1,etapaAnamneseAtual+1);renderizarAnamnese();$("anamneseSalvamento").textContent="Progresso salvo. Você pode continuar depois.";}
+      try{const proximaEtapa=Math.min(etapasAnamnese.length-1,etapaAnamneseAtual+1);await persistirAnamnese("rascunho",proximaEtapa);etapaAnamneseAtual=proximaEtapa;renderizarAnamnese();$("anamneseSalvamento").textContent="Progresso salvo. Você pode continuar depois.";}
       catch(e){console.error(e);mostrarErro("msgAnamnese","Não foi possível salvar seu progresso. Verifique sua conexão e tente novamente.");}
       finally{b.disabled=false;}
     });
@@ -443,7 +443,7 @@
         Object.entries(anamnese?.respostasEstruturadas||{}).forEach(([id,item])=>{respostasAnamnese[id]=item.resposta;});
         anamneseRevisada=anamnese?.status==="revisada";
         statusAnamneseAtual=anamnese?.status||"nova";
-        etapaAnamneseAtual=anamnese?.status==="enviada"||anamneseRevisada?etapasAnamnese.length-1:0;
+        etapaAnamneseAtual=anamnese?.status==="enviada"||anamneseRevisada?etapasAnamnese.length-1:Math.max(0,Math.min(etapasAnamnese.length-1,Number(anamnese?.etapaAtual)||0));
         if(anamnese?.textoLivre&&!anamnese?.respostasEstruturadas) $("statusAnamnese").textContent="Encontramos respostas antigas em texto. Elas foram preservadas e continuam visíveis para sua nutricionista.";
         else if(anamnese?.status==="enviada") $("statusAnamnese").textContent="Anamnese enviada. Você pode atualizar as respostas até a revisão.";
         else if(anamnese?.status==="rascunho") $("statusAnamnese").textContent="Você tem um rascunho salvo. Continue de onde parou.";
