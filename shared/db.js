@@ -7,7 +7,7 @@ import { db } from "./firebase-config.js";
 import { criarAcessoCliente, gerarCodigoAcesso } from "./auth.js";
 import {
   collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc,
-  query, where, orderBy, limit, serverTimestamp,
+  writeBatch, query, where, orderBy, limit, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // ============================================================
@@ -151,26 +151,36 @@ export async function listarSessoes(clienteId) {
 // CARDÁPIOS
 // ============================================================
 
-// Cria um cardápio novo e encerra o(s) anterior(es) que ainda estiverem
-// "vigente". Use sempre esta função (nunca criar cardápio direto),
-// para nunca ficar com dois vigentes ao mesmo tempo.
+// Publica um cardápio novo e encerra os anteriores em uma única gravação.
+// Se o commit falhar, o Firestore não aplica nenhuma das alterações: o cardápio
+// vigente anterior permanece vigente.
 export async function criarCardapio(clienteId, dadosCardapio) {
-  // 1. Encerra qualquer cardápio ainda vigente
-  const qVigente = query(
-    collection(db, "clientes", clienteId, "cardapios"),
-    where("status", "==", "vigente")
-  );
-  const snapVigentes = await getDocs(qVigente);
-  await Promise.all(
-    snapVigentes.docs.map((d) => updateDoc(d.ref, { status: "encerrado" }))
-  );
+  if (!clienteId || typeof clienteId !== "string") {
+    throw new Error("ID do cliente inválido.");
+  }
+  if (!dadosCardapio || typeof dadosCardapio !== "object" || Array.isArray(dadosCardapio)) {
+    throw new Error("Dados do cardápio inválidos.");
+  }
 
-  // 2. Cria o novo, já como vigente
-  const ref = await addDoc(collection(db, "clientes", clienteId, "cardapios"), {
+  const cardapiosRef = collection(db, "clientes", clienteId, "cardapios");
+  const qVigente = query(cardapiosRef, where("status", "==", "vigente"));
+  const snapVigentes = await getDocs(qVigente);
+
+  // Reserva a referência antes do commit, sem gravar ainda no banco.
+  const novoCardapioRef = doc(cardapiosRef);
+  const batch = writeBatch(db);
+
+  // Encerrar e publicar ficam atômicos: ou tudo é aplicado, ou nada é aplicado.
+  snapVigentes.docs.forEach((cardapio) => {
+    batch.update(cardapio.ref, { status: "encerrado" });
+  });
+  batch.set(novoCardapioRef, {
     ...dadosCardapio,
     status: "vigente",
   });
-  return ref.id;
+
+  await batch.commit();
+  return novoCardapioRef.id;
 }
 
 // Busca o cardápio vigente do cliente — usado na Home do dia dele
