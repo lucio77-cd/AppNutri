@@ -248,6 +248,47 @@ export async function listarUltimosCheckins(clienteId, quantidade = 7) {
 }
 
 // ============================================================
+// OBSERVAÇÕES PROFISSIONAIS — acesso exclusivo da nutricionista
+// ============================================================
+
+export async function criarObservacaoNutri(clienteId, dados) {
+  const texto = String(dados.texto || "").trim();
+  if (!texto) throw new Error("A anotação não pode ficar vazia.");
+  if (!["observacao", "pergunta", "acompanhar"].includes(dados.tipo)) {
+    throw new Error("Tipo de observação inválido.");
+  }
+  const ref = await addDoc(collection(db, "clientes", clienteId, "observacoesNutri"), {
+    tipo: dados.tipo,
+    assunto: String(dados.assunto || "").trim(),
+    texto,
+    status: "aberta",
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function listarObservacoesNutri(clienteId) {
+  const q = query(
+    collection(db, "clientes", clienteId, "observacoesNutri"),
+    orderBy("criadoEm", "desc"),
+    limit(100)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function atualizarStatusObservacaoNutri(clienteId, observacaoId, status) {
+  if (!["aberta", "concluida"].includes(status)) {
+    throw new Error("Status da observação inválido.");
+  }
+  await updateDoc(doc(db, "clientes", clienteId, "observacoesNutri", observacaoId), {
+    status,
+    atualizadoEm: serverTimestamp(),
+  });
+}
+
+// ============================================================
 // CONSENTIMENTO LGPD
 // ============================================================
 
