@@ -223,3 +223,16 @@ test("alimentos e receitas são acessíveis somente à nutricionista", async () 
     setDoc(doc(dbCliente, "receitas", "receita-nao-autorizada"), { nome: "Inválida" })
   );
 });
+
+test("cadastro do cliente: nutricionista altera apenas campos administrativos permitidos", async () => {
+  await prepararCliente();
+
+  const clienteRef = doc(dbNutri, "clientes", CLIENTE_ID);
+  await assertSucceeds(updateDoc(clienteRef, { cardapioVigenteId: "cardapio-novo" }));
+  await assertSucceeds(updateDoc(clienteRef, { statusAcompanhamento: "suspenso" }));
+  await assertFails(updateDoc(clienteRef, { campoClinicoNaoAutorizado: "não permitido" }));
+
+  const clienteRefProprio = doc(dbCliente, "clientes", CLIENTE_ID);
+  await assertFails(updateDoc(clienteRefProprio, { cardapioVigenteId: "fraudado" }));
+  await assertFails(updateDoc(clienteRefProprio, { ativo: false }));
+});
