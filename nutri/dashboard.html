@@ -79,7 +79,12 @@
       window.location.href = "/nutri/login.html";
     });
 
-    function escaparHtml(valor) {\n      return String(valor).replace(/[&<>"\']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\\"": "&quot;", "\\'": "&#39;" }[c]));\n    }\n\n    async function carregarClientes() {
+    function escaparHtml(valor) {
+      const mapa = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+      return String(valor).replace(/[&<>"']/g, (caractere) => mapa[caractere]);
+    }
+
+    async function carregarClientes() {
       const div = document.getElementById("listaClientes");
       try {
         const clientes = await listarTodosClientes();
