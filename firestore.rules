@@ -88,6 +88,12 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Observações profissionais: somente a conta da nutricionista pode acessar.
+      // O cliente não pode ler, criar, alterar ou excluir estas anotações.
+      match /observacoesNutri/{observacaoId} {
+        allow read, write: if isNutri();
+      }
+
       // Sessões (consultas): só a nutricionista lê e escreve —
       // contém anamnese clínica e o diagnóstico PES.
       match /sessoes/{sessaoId} {
