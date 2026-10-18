@@ -92,3 +92,24 @@ body.pagina-area-cliente {
   .pagina-area-cliente .container { padding:12px; }
   .boas-vindas { padding:20px; }
 }
+
+
+/* Anamnese estruturada por etapas */
+.anamnese-cabecalho { margin:18px 0 22px; }
+.anamnese-progresso { display:flex; justify-content:space-between; gap:12px; color:var(--cliente-suave); font-size:13px; margin-bottom:8px; }
+.anamnese-trilho { height:6px; border-radius:999px; background:#e2ece6; overflow:hidden; }
+.anamnese-barra { height:100%; width:14%; border-radius:999px; background:var(--cliente-primaria); transition:width .2s ease; }
+.anamnese-titulo { margin:0 0 6px; font-size:21px; }
+.anamnese-pergunta { min-width:0; margin:22px 0; padding:0; border:0; }
+.anamnese-pergunta legend { font-weight:700; line-height:1.45; margin-bottom:10px; }
+.anamnese-opcoes { display:grid; grid-template-columns:1fr; gap:8px; }
+.anamnese-opcao { display:flex; align-items:center; gap:11px; min-height:48px; padding:11px 12px; border:1px solid var(--cliente-borda); border-radius:12px; background:#fff; cursor:pointer; line-height:1.4; }
+.anamnese-opcao:has(input:checked) { border-color:var(--cliente-primaria); background:#edf6f1; }
+.anamnese-opcao input { flex:0 0 auto; width:19px; height:19px; accent-color:var(--cliente-primaria); }
+.anamnese-navegacao { display:flex; gap:10px; margin-top:22px; }
+.anamnese-navegacao .btn { flex:1; min-height:48px; }
+.anamnese-navegacao .btn-secundario { background:#fff; color:var(--cliente-primaria); border:1px solid var(--cliente-borda); }
+.anamnese-navegacao button:disabled { opacity:.55; cursor:not-allowed; }
+.anamnese-resumo { margin-top:20px; padding:14px; border-radius:12px; background:#edf6f1; line-height:1.5; }
+@media (min-width:600px) { .anamnese-opcoes { grid-template-columns:1fr 1fr; } }
+@media (max-width:420px) { .anamnese-navegacao { flex-direction:column-reverse; } }
