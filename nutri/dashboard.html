@@ -63,7 +63,7 @@
 
   <script type="module">
     import { observarLogin, logout } from "/shared/auth.js";
-    import { listarClientesAtivos, cadastrarNovoCliente } from "/shared/db.js";
+    import { listarTodosClientes, alterarStatusCliente, arquivarCliente, cadastrarNovoCliente } from "/shared/db.js";
     import { obterAlertasCliente } from "/shared/cardapio.js";
 
     observarLogin((user) => {
@@ -79,29 +79,78 @@
       window.location.href = "/nutri/login.html";
     });
 
-    async function carregarClientes() {
+    function escaparHtml(valor) {\n      return String(valor).replace(/[&<>"\']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\\"": "&quot;", "\\'": "&#39;" }[c]));\n    }\n\n    async function carregarClientes() {
       const div = document.getElementById("listaClientes");
       try {
-        const clientes = await listarClientesAtivos();
+        const clientes = await listarTodosClientes();
 
         if (clientes.length === 0) {
-          div.innerHTML = "<p>Nenhum cliente cadastrado ainda.</p>";
+          div.innerHTML = "<p>Nenhum cliente cadastrado ainda. Use <strong>+ Novo cliente</strong> para começar.</p>";
           return;
         }
 
         // Renderiza a lista primeiro (rápido), depois busca alertas de
         // cada cliente em paralelo e vai preenchendo os badges.
-        div.innerHTML = clientes.map((c) => `
-          <div class="cliente-linha" onclick="window.location.href='/nutri/cliente.html?id=${c.id}'">
-            <div>
-              <div class="cliente-nome">${c.nome}</div>
-              <div class="cliente-objetivo">${c.objetivo || "Sem objetivo definido"}</div>
+        div.innerHTML = clientes.map((c) => {
+          const status = c.statusAcompanhamento || (c.ativo === false ? "suspenso" : "ativo");
+          const statusTexto = status === "excluido" ? "Arquivado" : status === "suspenso" ? "Acompanhamento suspenso" : "Em acompanhamento";
+          const acoes = status === "ativo"
+            ? `<button type="button" class="btn btn-secundario" data-acao="suspender" data-id="${c.id}" style="width:auto;padding:7px 10px;">Suspender</button>
+               <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Excluir</button>`
+            : status === "suspenso"
+              ? `<button type="button" class="btn" data-acao="reativar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Retomar</button>
+                 <button type="button" class="btn btn-secundario" data-acao="arquivar" data-id="${c.id}" style="width:auto;padding:7px 10px;">Arquivar</button>`
+              : "";
+          return `
+            <div class="cliente-linha">
+              <div style="flex:1;min-width:0;cursor:pointer" data-abrir="${c.id}">
+                <div class="cliente-nome">${escaparHtml(c.nome || "Sem nome")}</div>
+                <div class="cliente-objetivo">${escaparHtml(c.objetivo || "Sem objetivo definido")}</div>
+                <div style="font-size:12px;margin-top:4px;">${statusTexto}</div>
+                <div id="badges-${c.id}">${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;margin-top:8px;">${acoes}</div>
             </div>
-            <div id="badges-${c.id}">
-              ${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}
-            </div>
-          </div>
-        `).join("");
+          `;
+        }).join("");
+
+        div.querySelectorAll("[data-abrir]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const cliente = clientes.find((c) => c.id === el.dataset.abrir);
+            if (cliente && (cliente.statusAcompanhamento || (cliente.ativo === false ? "suspenso" : "ativo")) !== "excluido") {
+              window.location.href = `/nutri/cliente.html?id=${cliente.id}`;
+            }
+          });
+        });
+
+        div.querySelectorAll("[data-acao]").forEach((btn) => {
+          btn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const id = btn.dataset.id;
+            const cliente = clientes.find((c) => c.id === id);
+            if (!cliente) return;
+            const acao = btn.dataset.acao;
+            try {
+              btn.disabled = true;
+              if (acao === "suspender") {
+                if (!confirm(`Suspender o acompanhamento de ${cliente.nome}? O acesso aos dados do AppNutri ficará bloqueado enquanto estiver suspenso.`)) return;
+                await alterarStatusCliente(id, "suspenso");
+              } else if (acao === "reativar") {
+                if (!confirm(`Retomar o acompanhamento de ${cliente.nome}?`)) return;
+                await alterarStatusCliente(id, "ativo");
+              } else if (acao === "arquivar") {
+                if (!confirm(`Arquivar o cadastro de ${cliente.nome}? Ele sairá da lista ativa, mas os registros serão preservados e não serão apagados definitivamente.`)) return;
+                await arquivarCliente(id);
+              }
+              await carregarClientes();
+            } catch (err) {
+              console.error("Erro ao atualizar cliente:", err);
+              alert("Não foi possível atualizar o cadastro. Confira a conexão e tente novamente.");
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
 
         clientes.forEach(async (c) => {
           if (!c.primeiroAcessoConcluido) return; // sem check-in/cardápio ainda faz sentido
