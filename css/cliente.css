@@ -113,3 +113,44 @@ body.pagina-area-cliente {
 .anamnese-resumo { margin-top:20px; padding:14px; border-radius:12px; background:#edf6f1; line-height:1.5; }
 @media (min-width:600px) { .anamnese-opcoes { grid-template-columns:1fr 1fr; } }
 @media (max-width:420px) { .anamnese-navegacao { flex-direction:column-reverse; } }
+
+
+/* Navegação e painel do cliente */
+.area-cliente { padding-bottom: 96px; }
+.navegacao-cliente { position:sticky; top:8px; z-index:20; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; padding:7px; margin:0 0 18px; background:rgba(255,255,255,.96); border:1px solid var(--cliente-borda); border-radius:16px; box-shadow:0 8px 22px rgba(23,66,48,.08); backdrop-filter:blur(12px); }
+.item-navegacao { min-width:0; border:0; border-radius:11px; background:transparent; color:var(--cliente-suave); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:8px 2px; cursor:pointer; }
+.item-navegacao span { font-size:22px; line-height:1.1; }
+.item-navegacao small { font-size:11px; font-weight:650; }
+.item-navegacao.ativo { background:#e8f4ee; color:var(--cliente-primaria-escura); }
+.painel-inicio { padding:22px; margin-bottom:14px; border-radius:18px; background:linear-gradient(135deg,#e7f4ec,#f7fbf8); border:1px solid var(--cliente-borda); }
+.painel-inicio .sobretitulo { margin:0 0 8px; font-size:11px; }
+.painel-inicio h2 { margin:0 0 8px; font-size:23px; }
+.painel-inicio p:last-child { margin:0; color:var(--cliente-suave); font-size:14px; line-height:1.5; }
+.resumo-inicio { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+.atalho-cliente { display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; padding:15px; border:1px solid var(--cliente-borda); border-radius:15px; background:#fff; color:#19352b; text-align:left; cursor:pointer; }
+.atalho-cliente strong { font-size:14px; }
+.atalho-cliente small { color:var(--cliente-suave); font-size:12px; line-height:1.4; }
+.atalho-icone { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:#e9f4ee; color:var(--cliente-primaria); font-size:22px; }
+.atalho-link { margin-top:3px; color:var(--cliente-primaria); font-size:12px; font-weight:750; }
+.card-status-anamnese { border-left:4px solid var(--cliente-primaria)!important; }
+.card-status-anamnese p { font-size:14px; line-height:1.5; }
+.indicadores-progresso { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0 24px; }
+.indicador-progresso { display:flex; flex-direction:column; gap:7px; padding:15px; background:#f4f8f6; border:1px solid var(--cliente-borda); border-radius:14px; }
+.indicador-progresso span,.indicador-progresso small { color:var(--cliente-suave); font-size:12px; line-height:1.4; }
+.indicador-progresso strong { font-size:20px; color:var(--cliente-primaria-escura); }
+.historico-peso-lista { list-style:none; margin:0; padding:0; }
+.historico-peso-lista li { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--cliente-borda); font-size:14px; }
+.perfil-identificacao { display:flex; align-items:center; gap:13px; padding:8px 0 18px; }
+.perfil-avatar { display:grid; place-items:center; flex:0 0 52px; height:52px; border-radius:50%; background:#e5f2ea; color:var(--cliente-primaria); font-size:22px; font-weight:800; }
+.perfil-identificacao strong { font-size:17px; }
+.perfil-identificacao p { margin:4px 0 0; color:var(--cliente-suave); font-size:13px; }
+.perfil-dados { margin:0 0 16px; }
+.perfil-dados div { padding:12px 0; border-bottom:1px solid var(--cliente-borda); }
+.perfil-dados dt { color:var(--cliente-suave); font-size:12px; margin-bottom:4px; }
+.perfil-dados dd { margin:0; font-size:14px; overflow-wrap:anywhere; }
+.aviso-rodape-cliente { margin:22px 0; }
+@media (max-width:520px) {
+  .navegacao-cliente { position:fixed; top:auto; bottom:max(8px,env(safe-area-inset-bottom)); left:10px; right:10px; margin:0 auto; width:min(calc(100% - 20px),740px); box-shadow:0 8px 28px rgba(23,66,48,.18); }
+  .resumo-inicio { gap:8px; }
+  .atalho-cliente { padding:12px; }
+}
