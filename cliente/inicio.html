@@ -243,7 +243,7 @@
         const codigoErro = erro?.code || erro?.message || "erro desconhecido";
         mostrarErro(
           "msgGeral",
-          `Falha ao carregar sua área (\u0024{codigoErro}). Tente novamente; se persistir, avise sua nutricionista.`
+          `Falha ao carregar sua área (${codigoErro}). Tente novamente; se persistir, avise sua nutricionista.`
         );
       }
     });
