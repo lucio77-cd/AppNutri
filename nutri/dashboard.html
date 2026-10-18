@@ -224,7 +224,7 @@
         modalAcesso.classList.remove("escondido");
 
         document.getElementById("btnCopiar").onclick = () => {
-          navigator.clipboard.writeText(`Código: ${codigo}\nSenha: ${senha}`);
+          navigator.clipboard.writeText(`ID: ${clienteId}\nLogin/código: ${codigo}\nSenha temporária: ${senha}`);
         };
 
         carregarClientes();
