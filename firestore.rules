@@ -25,7 +25,7 @@ service cloud.firestore {
     }
 
     function isDono(id) {
-      return request.auth != null && cli(id).authUid == request.auth.uid;
+      return request.auth != null && cli(id).authUid == request.auth.uid && cli(id).ativo == true;
     }
 
     // Consentimento LGPD precisa existir e não ter sido revogado
