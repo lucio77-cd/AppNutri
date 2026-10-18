@@ -49,7 +49,16 @@ service cloud.firestore {
     // ---------- Cliente ----------
 
     match /clientes/{id} {
-      allow read: if isNutri() || isDono(id);
+      // Leitura direta de um cadastro: nutricionista ou o próprio cliente ativo.
+      allow get: if isNutri() || isDono(id);
+
+      // Consultas à coleção precisam restringir os resultados ao UID autenticado.
+      // A consulta do cliente também filtra ativo == true.
+      allow list: if isNutri()
+        || (request.auth != null
+            && resource.data.authUid == request.auth.uid
+            && resource.data.ativo == true);
+
       allow create, delete: if isNutri();
 
       // Nutricionista edita tudo. Cliente só edita campos não clínicos,
