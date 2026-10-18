@@ -1,0 +1,13 @@
+{
+  "name": "app-nutri",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:cardapios": "firebase emulators:exec --only firestore --project demo-app-nutri \"node --test tests/cardapio-publicacao.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^10.13.0",
+    "firebase-tools": "^13.24.1"
+  }
+}
