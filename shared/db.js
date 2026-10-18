@@ -32,6 +32,7 @@ export async function cadastrarNovoCliente({ nome, dataNascimento, contato, obje
     acompanhaDiario: false,
     primeiroAcessoConcluido: false,
     ativo: true,
+    statusAcompanhamento: "ativo",
     criadoEm: serverTimestamp(),
   });
 
