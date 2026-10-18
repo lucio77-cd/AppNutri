@@ -197,3 +197,144 @@
     padding-inline: 3px;
   }
 }
+
+
+/* Caderno profissional privado e leitura visual da anamnese */
+.texto-suave {
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.observacao-form-card {
+  border-color: #cddfd3;
+  background: #fbfdfb;
+}
+.observacoes-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 10px;
+}
+.observacoes-cabecalho h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.tag-contagem {
+  color: #245b45;
+  background: #edf5f0;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 650;
+}
+.lista-observacoes {
+  display: grid;
+  gap: 10px;
+}
+.observacao-item {
+  background: #fff;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: 13px;
+}
+.observacao-item-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+.observacao-tipo {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+  background: #edf5f0;
+  color: #245b45;
+}
+.tipo-pergunta {
+  background: #fff2d6;
+  color: #805600;
+}
+.tipo-acompanhar {
+  background: #eaf1ff;
+  color: #284f91;
+}
+.observacao-data {
+  color: var(--cor-texto-suave);
+  font-size: 11px;
+}
+.observacao-item h4 {
+  margin: 0 0 7px;
+  font-size: 15px;
+}
+.observacao-texto {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.observacao-item-acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.observacao-status {
+  color: #805600;
+  font-size: 12px;
+  font-weight: 650;
+}
+.observacao-concluida {
+  background: #f8f9f8;
+  opacity: .82;
+}
+.observacao-concluida .observacao-status {
+  color: #216e39;
+}
+.estado-vazio {
+  text-align: center;
+  padding: 22px 16px;
+  border: 1px dashed var(--cor-borda);
+  border-radius: 12px;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+}
+.estado-vazio strong {
+  color: var(--cor-texto);
+  font-size: 14px;
+}
+.estado-vazio p {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+.anamnese-grupo summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.4;
+}
+.anamnese-grupo summary span {
+  flex-shrink: 0;
+  background: #edf5f0;
+  color: #245b45;
+  padding: 4px 8px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+.anamnese-respostas dd {
+  display: block;
+  background: #f5f8f6;
+  border-left: 3px solid var(--cor-primaria);
+  border-radius: 0 7px 7px 0;
+  padding: 9px 11px;
+  overflow-wrap: anywhere;
+}
