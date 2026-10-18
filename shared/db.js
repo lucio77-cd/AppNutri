@@ -225,7 +225,7 @@ export async function salvarCheckin(clienteId, data, dadosParciais) {
   const ref = doc(db, "clientes", clienteId, "checkins", data);
   await setDoc(
     ref,
-    { ...dadosParciais, atualizadoEm: serverTimestamp() },
+    { data, ...dadosParciais, atualizadoEm: serverTimestamp() },
     { merge: true }
   );
 }
