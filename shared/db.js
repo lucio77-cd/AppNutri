@@ -55,6 +55,34 @@ export async function listarClientesAtivos() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// Lista todos os cadastros para a gestão da nutricionista, inclusive suspensos/arquivados.
+export async function listarTodosClientes() {
+  const q = query(collection(db, "clientes"), orderBy("nome"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Suspende ou retoma o acompanhamento sem apagar o histórico clínico.
+export async function alterarStatusCliente(clienteId, status) {
+  if (!["ativo", "suspenso"].includes(status)) {
+    throw new Error("Status de acompanhamento inválido.");
+  }
+  await updateDoc(doc(db, "clientes", clienteId), {
+    ativo: status === "ativo",
+    statusAcompanhamento: status,
+    statusAtualizadoEm: serverTimestamp(),
+  });
+}
+
+// "Excluir" na interface significa arquivar: preserva prontuário e histórico.
+export async function arquivarCliente(clienteId) {
+  await updateDoc(doc(db, "clientes", clienteId), {
+    ativo: false,
+    statusAcompanhamento: "excluido",
+    arquivadoEm: serverTimestamp(),
+  });
+}
+
 // Busca um cliente específico — para abrir a página dele.
 export async function obterCliente(clienteId) {
   const snap = await getDoc(doc(db, "clientes", clienteId));
