@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /clientes/{clienteId} {
+      allow read, write: if true;
+
+      match /cardapios/{cardapioId} {
+        allow read: if true;
+        allow create: if !('simularFalha' in request.resource.data)
+          || request.resource.data.simularFalha != true;
+        allow update, delete: if true;
+      }
+    }
+  }
+}
