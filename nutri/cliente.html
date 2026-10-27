@@ -25,6 +25,9 @@
     .lista-simples li { padding: 8px 0; border-bottom: 1px solid var(--cor-borda); font-size: 14px; }
     .tag-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #E8F5E9; color: var(--cor-primaria-escura); }
     .small-btn { font-size: 13px; padding: 6px 10px; width: auto; display: inline-block; }
+    .campo-check { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+    .campo-check input { width: auto; margin-top: 3px; }
+    .campo-check small { display: block; color: var(--cor-texto-suave); }
   </style>
 </head>
 <body>
@@ -190,6 +193,17 @@
           <div class="campo"><label>Nome</label><input type="text" id="editNome"></div>
           <div class="campo"><label>Telefone</label><input type="tel" id="editTelefone"></div>
           <div class="campo"><label>Objetivo</label><input type="text" id="editObjetivo"></div>
+          <div class="campo">
+            <label for="editProximaConsulta">Próxima consulta</label>
+            <input type="date" id="editProximaConsulta">
+          </div>
+          <label class="campo-check">
+            <input type="checkbox" id="editAcompanha">
+            <span>
+              Acompanhamento diário
+              <small>Ligue quando o cliente quiser registrar refeições, peso e sintomas no app dele.</small>
+            </span>
+          </label>
           <button type="submit" class="btn">Salvar dados</button>
           <p id="msgDados" class="erro escondido"></p>
         </form>
@@ -210,6 +224,33 @@
     const params = new URLSearchParams(window.location.search);
     const clienteId = params.get("id");
 
+    // ---------- Utilitários ----------
+    function escaparTexto(valor) {
+      return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[c]);
+    }
+
+    // "2026-11-05" -> "05/11/2026" (sem deslocamento de fuso)
+    function formatarDataISO(texto) {
+      if (!texto) return "";
+      const d = new Date(texto + "T00:00:00");
+      return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR");
+    }
+
+    // Timestamp do Firestore (ou Date) -> "05/11/2026"
+    function formatarTimestamp(valor) {
+      if (!valor) return "—";
+      const d = valor.toDate ? valor.toDate() : new Date(valor);
+      return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("pt-BR");
+    }
+
+    function mostrarMensagem(el, texto, sucesso = false) {
+      el.textContent = texto;
+      el.style.color = sucesso ? "var(--cor-primaria)" : "";
+      el.classList.remove("escondido");
+    }
+
     if (!clienteId) {
       document.getElementById("cabecalho").innerHTML = "<p class='erro'>Cliente não especificado na URL.</p>";
     }
@@ -228,6 +269,8 @@
     });
 
     let refeicaoContador = 0;
+    let clienteAtual = null;
+    const modelosPorId = {};
 
     async function carregarTudo() {
       await carregarCabecalho();
@@ -246,31 +289,30 @@
         document.getElementById("cabecalho").innerHTML = "<p class='erro'>Cliente não encontrado.</p>";
         return;
       }
+      clienteAtual = cliente;
+      const proxima = formatarDataISO(cliente.proximaConsulta);
       document.getElementById("cabecalho").innerHTML = `
-        <h1>${cliente.nome}</h1>
-        <p>${cliente.objetivo || "Sem objetivo definido"}</p>
+        <h1>${escaparTexto(cliente.nome)}</h1>
+        <p>${escaparTexto(cliente.objetivo || "Sem objetivo definido")}</p>
+        ${proxima ? `<p><strong>Próxima consulta:</strong> ${escaparTexto(proxima)}</p>` : ""}
       `;
       document.getElementById("editNome").value = cliente.nome || "";
       document.getElementById("editTelefone").value = (cliente.contato && cliente.contato.telefone) || "";
       document.getElementById("editObjetivo").value = cliente.objetivo || "";
+      document.getElementById("editProximaConsulta").value = cliente.proximaConsulta || "";
+      document.getElementById("editAcompanha").checked = cliente.acompanhaDiario === true;
     }
 
     async function carregarAlertas() {
       try {
-        const alertas = await obterAlertasCliente(clienteId);
+        const alertas = await obterAlertasCliente(clienteId, clienteAtual);
         const div = document.getElementById("alertas");
         div.innerHTML = alertas.length === 0
           ? "<p>Sem alertas no momento.</p>"
-          : alertas.map((a) => `<span class="badge-alerta">${a.texto}</span>`).join(" ");
+          : alertas.map((a) => `<span class="badge-alerta">${escaparTexto(a.texto)}</span>`).join(" ");
       } catch (err) {
         console.error(err);
       }
-    }
-
-    function escaparTexto(valor) {
-      return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      })[c]);
     }
 
     async function carregarAnamnese() {
@@ -315,7 +357,6 @@
         catch (e) { btn.disabled = false; console.error(e); alert("Não foi possível marcar a anamnese como revisada."); }
       });
     }
-
 
     // ---------- Caderno privado da nutricionista ----------
     const tiposObservacao = {
@@ -445,11 +486,10 @@
         div.innerHTML = "<p>Nenhum cardápio vigente.</p>";
         return;
       }
-      const fim = cardapio.dataFim?.toDate ? cardapio.dataFim.toDate() : new Date(cardapio.dataFim);
       div.innerHTML = `
-        <p><strong>Válido até:</strong> ${fim.toLocaleDateString("pt-BR")}</p>
+        <p><strong>Válido de</strong> ${escaparTexto(formatarTimestamp(cardapio.dataInicio))} <strong>até</strong> ${escaparTexto(formatarTimestamp(cardapio.dataFim))}</p>
         <ul class="lista-simples">
-          ${(cardapio.refeicoes || []).map((r) => `<li><strong>${r.nome}</strong> (${r.horario}) — ${(r.itens || []).join(", ")}</li>`).join("")}
+          ${(cardapio.refeicoes || []).map((r) => `<li><strong>${escaparTexto(r.nome)}</strong> (${escaparTexto(r.horario)}) — ${escaparTexto((r.itens || []).join(", "))}</li>`).join("")}
         </ul>
       `;
     }
@@ -462,30 +502,29 @@
         div.innerHTML = "<p>Sem cardápios anteriores.</p>";
         return;
       }
-      div.innerHTML = anteriores.map((c) => {
-        const inicio = c.dataInicio?.toDate ? c.dataInicio.toDate() : new Date(c.dataInicio);
-        const fim = c.dataFim?.toDate ? c.dataFim.toDate() : new Date(c.dataFim);
-        return `<p>${inicio.toLocaleDateString("pt-BR")} a ${fim.toLocaleDateString("pt-BR")} — ${(c.refeicoes || []).length} refeições</p>`;
-      }).join("");
+      div.innerHTML = anteriores.map((c) =>
+        `<p>${escaparTexto(formatarTimestamp(c.dataInicio))} a ${escaparTexto(formatarTimestamp(c.dataFim))} — ${(c.refeicoes || []).length} refeições</p>`
+      ).join("");
     }
 
     // ---------- Modelos ----------
     async function carregarModelos() {
       const modelos = await listarModelosCardapio();
       const select = document.getElementById("selectModelo");
+      select.length = 1; // mantém só "— Montar do zero —"
+      Object.keys(modelosPorId).forEach((k) => delete modelosPorId[k]);
       modelos.forEach((m) => {
+        modelosPorId[m.id] = m;
         const opt = document.createElement("option");
         opt.value = m.id;
         opt.textContent = m.nome;
-        opt.dataset.modelo = JSON.stringify(m);
         select.appendChild(opt);
       });
     }
 
     document.getElementById("selectModelo").addEventListener("change", (e) => {
-      const opt = e.target.selectedOptions[0];
-      if (!opt.dataset.modelo) return;
-      const modelo = JSON.parse(opt.dataset.modelo);
+      const modelo = modelosPorId[e.target.value];
+      if (!modelo) return;
       document.getElementById("listaRefeicoes").innerHTML = "";
       refeicaoContador = 0;
       (modelo.refeicoes || []).forEach((r) => adicionarLinhaRefeicao(r));
@@ -523,10 +562,10 @@
       div.dataset.refId = id;
       div.innerHTML = `
         <div class="linha-2">
-          <input type="text" placeholder="Nome (ex: Café da manhã)" class="rNome" value="${dados.nome || ""}">
-          <input type="time" class="rHorario" value="${dados.horario || ""}" style="max-width:110px;">
+          <input type="text" placeholder="Nome (ex: Café da manhã)" class="rNome" value="${escaparTexto(dados.nome || "")}">
+          <input type="time" class="rHorario" value="${escaparTexto(dados.horario || "")}" style="max-width:110px;">
         </div>
-        <input type="text" placeholder="Itens separados por vírgula" class="rItens" value="${(dados.itens || []).join(", ")}">
+        <input type="text" placeholder="Itens separados por vírgula" class="rItens" value="${escaparTexto((dados.itens || []).join(", "))}">
         <button type="button" class="btn btn-secundario small-btn remover-refeicao">Remover</button>
       `;
       div.querySelector(".remover-refeicao").addEventListener("click", () => div.remove());
@@ -538,12 +577,24 @@
       const msg = document.getElementById("msgCardapio");
       msg.classList.add("escondido");
 
+      const inicio = document.getElementById("cDataInicio").value;
+      const fim = document.getElementById("cDataFim").value;
+      if (fim < inicio) {
+        mostrarMensagem(msg, "A data de fim não pode ser anterior à data de início.");
+        return;
+      }
+
       const refeicoes = [...document.querySelectorAll(".refeicao-item")].map((div) => ({
         id: div.dataset.refId,
-        nome: div.querySelector(".rNome").value,
+        nome: div.querySelector(".rNome").value.trim(),
         horario: div.querySelector(".rHorario").value,
         itens: div.querySelector(".rItens").value.split(",").map((s) => s.trim()).filter(Boolean),
-      }));
+      })).filter((r) => r.nome);
+
+      if (refeicoes.length === 0) {
+        mostrarMensagem(msg, "Adicione pelo menos uma refeição com nome.");
+        return;
+      }
 
       const metas = {
         kcal: parseFloat(document.getElementById("mKcal").value) || null,
@@ -553,8 +604,9 @@
       };
 
       const dadosCardapio = {
-        dataInicio: new Date(document.getElementById("cDataInicio").value),
-        dataFim: new Date(document.getElementById("cDataFim").value),
+        // "T00:00:00" = meia-noite no horário local (evita cair no dia anterior)
+        dataInicio: new Date(inicio + "T00:00:00"),
+        dataFim: new Date(fim + "T00:00:00"),
         refeicoes,
         metas,
         orientacoes: document.getElementById("cOrientacoes").value,
@@ -566,18 +618,20 @@
         if (document.getElementById("salvarComoModelo").checked) {
           const nomeModelo = document.getElementById("nomeModelo").value || "Modelo sem nome";
           await salvarModeloCardapio({ nome: nomeModelo, refeicoes, metas });
+          await carregarModelos();
         }
 
         formCardapioCard.classList.add("escondido");
         document.getElementById("formCardapio").reset();
+        document.getElementById("campoNomeModelo").classList.add("escondido");
         document.getElementById("listaRefeicoes").innerHTML = "";
         refeicaoContador = 0;
 
         await carregarCardapioVigente();
         await carregarHistoricoCardapios();
+        await carregarAlertas();
       } catch (err) {
-        msg.textContent = "Erro ao salvar cardápio.";
-        msg.classList.remove("escondido");
+        mostrarMensagem(msg, "Erro ao salvar cardápio.");
         console.error(err);
       }
     });
@@ -587,16 +641,18 @@
       const checkins = await listarUltimosCheckins(clienteId, 14);
       const ul = document.getElementById("listaProgresso");
       if (checkins.length === 0) {
-        ul.innerHTML = "<li>Sem registros ainda.</li>";
+        ul.innerHTML = clienteAtual && clienteAtual.acompanhaDiario !== true
+          ? "<li>Acompanhamento diário desativado para este cliente. Ative em Dados cadastrais quando ele quiser registrar.</li>"
+          : "<li>Sem registros ainda.</li>";
         return;
       }
       ul.innerHTML = checkins.map((c) => {
         const adesaoDia = calcularAdesao([c]);
         return `<li>
-          <strong>${c.id}</strong> —
-          peso: ${c.peso ?? "—"} kg,
-          adesão: ${adesaoDia ?? "—"}%,
-          sintomas: fome ${c.sintomas?.fome ?? "—"}/5, energia ${c.sintomas?.energia ?? "—"}/5
+          <strong>${escaparTexto(c.id)}</strong> —
+          peso: ${escaparTexto(c.peso ?? "—")} kg,
+          adesão: ${escaparTexto(adesaoDia ?? "—")}%,
+          sintomas: fome ${escaparTexto(c.sintomas?.fome ?? "—")}/5, energia ${escaparTexto(c.sintomas?.energia ?? "—")}/5
         </li>`;
       }).join("");
     }
@@ -608,14 +664,18 @@
       msg.classList.add("escondido");
       try {
         await atualizarCliente(clienteId, {
-          nome: document.getElementById("editNome").value,
+          nome: document.getElementById("editNome").value.trim(),
           contato: { telefone: document.getElementById("editTelefone").value },
           objetivo: document.getElementById("editObjetivo").value,
+          proximaConsulta: document.getElementById("editProximaConsulta").value || null,
+          acompanhaDiario: document.getElementById("editAcompanha").checked,
         });
         await carregarCabecalho();
+        await carregarAlertas();
+        await carregarProgresso();
+        mostrarMensagem(msg, "Dados salvos.", true);
       } catch (err) {
-        msg.textContent = "Erro ao salvar dados.";
-        msg.classList.remove("escondido");
+        mostrarMensagem(msg, "Erro ao salvar dados.");
         console.error(err);
       }
     });
