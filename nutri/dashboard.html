@@ -66,7 +66,7 @@
   <script type="module">
     import { observarLogin, logout } from "/shared/auth.js";
     import { listarTodosClientes, alterarStatusCliente, arquivarCliente, cadastrarNovoCliente } from "/shared/db.js";
-    import { obterAlertasCliente } from "/shared/cardapio.js";
+    import { obterAlertasCliente, alertaProximaConsulta } from "/shared/cardapio.js";
 
     observarLogin((user) => {
       if (!user) {
@@ -83,7 +83,11 @@
 
     function escaparHtml(valor) {
       const mapa = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-      return String(valor).replace(/[&<>"']/g, (caractere) => mapa[caractere]);
+      return String(valor ?? "").replace(/[&<>"']/g, (caractere) => mapa[caractere]);
+    }
+
+    function statusDoCliente(c) {
+      return c.statusAcompanhamento || (c.ativo === false ? "suspenso" : "ativo");
     }
 
     async function carregarClientes() {
@@ -99,24 +103,24 @@
         // Renderiza a lista primeiro (rápido), depois busca alertas de
         // cada cliente em paralelo e vai preenchendo os badges.
         div.innerHTML = clientes.map((c) => {
-          const status = c.statusAcompanhamento || (c.ativo === false ? "suspenso" : "ativo");
+          const status = statusDoCliente(c);
           const statusTexto = status === "excluido" ? "Arquivado" : status === "suspenso" ? "Acompanhamento suspenso" : "Em acompanhamento";
           const acoes = status === "ativo"
-            ? `<button type="button" class="btn btn-acao btn-acesso" data-acao="acesso" data-id="${c.id}">ID / login</button>
-               <button type="button" class="btn btn-acao btn-suspender" data-acao="suspender" data-id="${c.id}">Suspender</button>
-               <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${c.id}">Arquivar</button>`
+            ? `<button type="button" class="btn btn-acao btn-acesso" data-acao="acesso" data-id="${escaparHtml(c.id)}">ID / login</button>
+               <button type="button" class="btn btn-acao btn-suspender" data-acao="suspender" data-id="${escaparHtml(c.id)}">Suspender</button>
+               <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${escaparHtml(c.id)}">Arquivar</button>`
             : status === "suspenso"
-              ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${c.id}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
-                 <button type="button" class="btn btn-acao btn-retomar" data-acao="reativar" data-id="${c.id}">Retomar</button>
-                 <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${c.id}">Arquivar</button>`
+              ? `<button type="button" class="btn btn-secundario" data-acao="acesso" data-id="${escaparHtml(c.id)}" style="width:auto;padding:7px 10px;">Ver ID/login</button>
+                 <button type="button" class="btn btn-acao btn-retomar" data-acao="reativar" data-id="${escaparHtml(c.id)}">Retomar</button>
+                 <button type="button" class="btn btn-acao btn-arquivar" data-acao="arquivar" data-id="${escaparHtml(c.id)}">Arquivar</button>`
               : "";
           return `
             <div class="cliente-linha">
-              <div class="cliente-info" data-abrir="${c.id}">
+              <div class="cliente-info" data-abrir="${escaparHtml(c.id)}">
                 <div class="cliente-nome">${escaparHtml(c.nome || "Sem nome")}</div>
                 <div class="cliente-objetivo">${escaparHtml(c.objetivo || "Sem objetivo definido")}</div>
-                <div class="cliente-status status-${status}">${statusTexto}</div>
-                <div id="badges-${c.id}">${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}</div>
+                <div class="cliente-status status-${escaparHtml(status)}">${statusTexto}</div>
+                <div id="badges-${escaparHtml(c.id)}">${c.primeiroAcessoConcluido ? "" : '<span class="badge-alerta">Aguardando 1º acesso</span>'}</div>
               </div>
               <div class="cliente-acoes">${acoes}</div>
             </div>
@@ -126,8 +130,8 @@
         div.querySelectorAll("[data-abrir]").forEach((el) => {
           el.addEventListener("click", () => {
             const cliente = clientes.find((c) => c.id === el.dataset.abrir);
-            if (cliente && (cliente.statusAcompanhamento || (cliente.ativo === false ? "suspenso" : "ativo")) !== "excluido") {
-              window.location.href = `/nutri/cliente.html?id=${cliente.id}`;
+            if (cliente && statusDoCliente(cliente) !== "excluido") {
+              window.location.href = `/nutri/cliente.html?id=${encodeURIComponent(cliente.id)}`;
             }
           });
         });
@@ -143,7 +147,7 @@
               document.getElementById("idClienteGerado").textContent = cliente.id;
               document.getElementById("codigoGerado").textContent = cliente.codigo || "Código não encontrado neste cadastro";
               document.getElementById("senhaGerada").textContent = "Por segurança, a senha não fica salva. Se o cliente perdeu a senha, será necessário configurar uma recuperação segura.";
-              document.getElementById("btnCopiar").onclick = () => navigator.clipboard.writeText(`ID: ${cliente.id}\\nLogin/código: ${cliente.codigo || ""}`);
+              document.getElementById("btnCopiar").onclick = () => navigator.clipboard.writeText(`ID: ${cliente.id}\nLogin/código: ${cliente.codigo || ""}`);
               document.getElementById("modalAcesso").classList.remove("escondido");
               return;
             }
@@ -169,14 +173,24 @@
           });
         });
 
+        // Alertas: só para clientes em acompanhamento ativo.
         clientes.forEach(async (c) => {
-          if (!c.primeiroAcessoConcluido) return; // sem check-in/cardápio ainda faz sentido
+          if (statusDoCliente(c) !== "ativo") return;
+          const container = document.getElementById(`badges-${c.id}`);
+          if (!container) return;
           try {
-            const alertas = await obterAlertasCliente(c.id);
-            const container = document.getElementById(`badges-${c.id}`);
-            if (container && alertas.length > 0) {
+            if (!c.primeiroAcessoConcluido) {
+              // Ainda não acessou: mostra só o aviso de consulta, se houver
+              const consulta = alertaProximaConsulta(c);
+              if (consulta) {
+                container.innerHTML += ` <span class="badge-alerta">${escaparHtml(consulta.texto)}</span>`;
+              }
+              return;
+            }
+            const alertas = await obterAlertasCliente(c.id, c);
+            if (alertas.length > 0) {
               container.innerHTML = alertas
-                .map((a) => `<span class="badge-alerta">${a.texto}</span>`)
+                .map((a) => `<span class="badge-alerta">${escaparHtml(a.texto)}</span>`)
                 .join(" ");
             }
           } catch (err) {
@@ -206,7 +220,7 @@
       msgErro.classList.add("escondido");
 
       const dados = {
-        nome: document.getElementById("nome").value,
+        nome: document.getElementById("nome").value.trim(),
         dataNascimento: document.getElementById("dataNascimento").value || null,
         contato: { telefone: document.getElementById("telefone").value || "" },
         objetivo: document.getElementById("objetivo").value || "",
